@@ -1,0 +1,3 @@
+[submodule "soft_3"]
+	path = soft_3
+	url = git@github.com:0dminnimda/slabes.git
