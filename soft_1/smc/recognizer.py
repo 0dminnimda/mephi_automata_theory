@@ -34,15 +34,12 @@ class Recognizer:
         return self._fsm.getState()
 
 
-try:
-    s = input()
-except EOFError:
-    s = ""
+def match(string: str) -> tuple[bool, str | None]:
+    rec = Recognizer(string)
+    while not rec.finished:
+        # print(rec.peek(), rec.getState().getName())
+        rec.next()
 
-rec = Recognizer(s)
-while not rec.finished:
-    # print(rec.peek(), rec.getState().getName())
-    rec.next()
-
-
-exit(rec.getState() is not MainMap.match)
+    if rec.getState() is not MainMap.match:
+        return False, None
+    return True, None
