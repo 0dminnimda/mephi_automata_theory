@@ -64,10 +64,12 @@ class MainMap_post_class(MainMap_Default):
                 fsm.getState().Entry(fsm)
         elif  ctxt.peek().isidentifier()  :
             fsm.getState().Exit(fsm)
-            # No actions.
-            pass
-            fsm.setState(MainMap.class_name)
-            fsm.getState().Entry(fsm)
+            fsm.clearState()
+            try:
+                ctxt.save_position()
+            finally:
+                fsm.setState(MainMap.class_name)
+                fsm.getState().Entry(fsm)
         else:
             MainMap_Default.next(self, fsm)
         
@@ -87,6 +89,7 @@ class MainMap_class_name(MainMap_Default):
             fsm.getState().Exit(fsm)
             fsm.clearState()
             try:
+                ctxt.save_position()
                 ctxt.consume()
             finally:
                 fsm.setState(MainMap.post_class_name_spaces)
@@ -95,6 +98,7 @@ class MainMap_class_name(MainMap_Default):
             fsm.getState().Exit(fsm)
             fsm.clearState()
             try:
+                ctxt.save_position()
                 ctxt.consume()
             finally:
                 fsm.setState(MainMap.post_colon_space)
@@ -165,36 +169,41 @@ class MainMap_parent_pair(MainMap_Default):
 
     def next(self, fsm):
         ctxt = fsm.getOwner()
-        if  ctxt.match_and_consume("private") and ctxt.peek().isspace()  :
+        if  ctxt.match("private") and ctxt.peek(7).isspace() and ctxt.peek(8).isidentifier()  :
             fsm.getState().Exit(fsm)
             fsm.clearState()
             try:
-                ctxt.consume()
+                ctxt.consume(8)
+                ctxt.save_position()
             finally:
                 fsm.setState(MainMap.parent_name)
                 fsm.getState().Entry(fsm)
-        elif  ctxt.match_and_consume("protected") and ctxt.peek().isspace()  :
+        elif  ctxt.match("protected") and ctxt.peek(9).isspace() and ctxt.peek(10).isidentifier()  :
             fsm.getState().Exit(fsm)
             fsm.clearState()
             try:
-                ctxt.consume()
+                ctxt.consume(10)
+                ctxt.save_position()
             finally:
                 fsm.setState(MainMap.parent_name)
                 fsm.getState().Entry(fsm)
-        elif  ctxt.match_and_consume("public") and ctxt.peek().isspace()  :
+        elif  ctxt.match("public") and ctxt.peek(6).isspace() and ctxt.peek(7).isidentifier()  :
             fsm.getState().Exit(fsm)
             fsm.clearState()
             try:
-                ctxt.consume()
+                ctxt.consume(7)
+                ctxt.save_position()
             finally:
                 fsm.setState(MainMap.parent_name)
                 fsm.getState().Entry(fsm)
         elif  ctxt.peek().isidentifier()  :
             fsm.getState().Exit(fsm)
-            # No actions.
-            pass
-            fsm.setState(MainMap.parent_name)
-            fsm.getState().Entry(fsm)
+            fsm.clearState()
+            try:
+                ctxt.save_position()
+            finally:
+                fsm.setState(MainMap.parent_name)
+                fsm.getState().Entry(fsm)
         else:
             MainMap_Default.next(self, fsm)
         
@@ -214,6 +223,7 @@ class MainMap_parent_name(MainMap_Default):
             fsm.getState().Exit(fsm)
             fsm.clearState()
             try:
+                ctxt.save_position()
                 ctxt.consume()
             finally:
                 fsm.setState(MainMap.post_parent_name_spaces)
@@ -222,6 +232,7 @@ class MainMap_parent_name(MainMap_Default):
             fsm.getState().Exit(fsm)
             fsm.clearState()
             try:
+                ctxt.save_position()
                 ctxt.consume()
             finally:
                 fsm.setState(MainMap.post_comma)

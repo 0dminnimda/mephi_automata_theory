@@ -18,13 +18,13 @@ class_kw {
 
 post_class {
   next [ ctxt.peek().isspace() ]      post_class { consume(); }
-  next [ ctxt.peek().isidentifier() ] class_name {}
+  next [ ctxt.peek().isidentifier() ] class_name { save_position(); }
 }
 
 class_name {
   next [ ctxt.peek().isdigit() or ctxt.peek().isidentifier() ] class_name             { consume(); }
-  next [ ctxt.peek().isspace() ]                               post_class_name_spaces { consume(); }
-  next [ ctxt.peek() == ":" ]                                  post_colon_space       { consume(); }
+  next [ ctxt.peek().isspace() ]                               post_class_name_spaces { save_position(); consume(); }
+  next [ ctxt.peek() == ":" ]                                  post_colon_space       { save_position(); consume(); }
 }
 
 post_class_name_spaces {
@@ -42,16 +42,16 @@ post_colon {
 }
 
 parent_pair {
-  next [ ctxt.match_and_consume("private") and ctxt.peek().isspace() ]   parent_name { consume(); }
-  next [ ctxt.match_and_consume("protected") and ctxt.peek().isspace() ] parent_name { consume(); }
-  next [ ctxt.match_and_consume("public") and ctxt.peek().isspace() ]    parent_name { consume(); }
-  next [ ctxt.peek().isidentifier() ]                                    parent_name {}
+  next [ ctxt.match("private") and ctxt.peek(7).isspace() and ctxt.peek(8).isidentifier() ]   parent_name { consume(8); save_position(); }
+  next [ ctxt.match("protected") and ctxt.peek(9).isspace() and ctxt.peek(10).isidentifier() ] parent_name { consume(10); save_position(); }
+  next [ ctxt.match("public") and ctxt.peek(6).isspace() and ctxt.peek(7).isidentifier() ]    parent_name { consume(7); save_position(); }
+  next [ ctxt.peek().isidentifier() ]                                                                    parent_name { save_position(); }
 }
 
 parent_name {
   next [ ctxt.peek().isdigit() or ctxt.peek().isidentifier() ] parent_name             { consume(); }
-  next [ ctxt.peek().isspace() ]                               post_parent_name_spaces { consume(); }
-  next [ ctxt.peek() == "," ]                                  post_comma              { consume(); }
+  next [ ctxt.peek().isspace() ]                               post_parent_name_spaces { save_position(); consume(); }
+  next [ ctxt.peek() == "," ]                                  post_comma              { save_position(); consume(); }
 }
 
 post_parent_name_spaces {

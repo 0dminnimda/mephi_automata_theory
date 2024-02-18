@@ -1,3 +1,4 @@
+from collections import deque
 from recognizer_sm import Recognizer_sm, MainMap
 
 
@@ -6,6 +7,7 @@ class Recognizer:
         self.string = string
         self.position = 0
         self.finished = False
+        self.saved = deque()
         self._fsm = Recognizer_sm(self)
 
     def peek(self, at: int = 0):
@@ -14,15 +16,23 @@ class Recognizer:
             return ""
         return self.string[pos]
 
-    def consume(self):
-        if self.position < len(self.string):
-            self.position += 1
+    def save_position(self):
+        self.saved.append(self.position)
+
+    def consume(self, amount: int = 1):
+        self.position += amount
+        self.position = min(self.position, len(self.string))
+
+    def match(self, string: str):
+        if self.string[self.position : self.position + len(string)] == string:
+            return True
+        return False
 
     def match_and_consume(self, string: str):
-        if self.string[self.position : self.position + len(string)] == string:
+        if self.match(string):
             self.position += len(string)
             return True
-        return False        
+        return False
 
     def finish(self):
         self.finished = True
@@ -34,6 +44,11 @@ class Recognizer:
         return self._fsm.getState()
 
 
+def has_duplicates(x):
+    seen = set()
+    return any(i in seen or seen.add(i) for i in x)
+
+
 def match(string: str) -> tuple[bool, str | None]:
     rec = Recognizer(string)
     while not rec.finished:
@@ -42,4 +57,15 @@ def match(string: str) -> tuple[bool, str | None]:
 
     if rec.getState() is not MainMap.match:
         return False, None
+
+    assert len(rec.saved) % 2 == 0
+    captures = deque()
+    for _ in range(0, len(rec.saved), 2):
+        start = rec.saved.popleft()
+        end = rec.saved.popleft()
+        captures.append(string[start:end])
+
+    name = captures.popleft()
+    if has_duplicates(captures):
+        return True, name
     return True, None

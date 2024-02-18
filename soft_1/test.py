@@ -95,10 +95,10 @@ def random_spaces(lower_bound: int = 1, upper_bound: int = 20) -> str:
     return " " * random.randint(lower_bound, upper_bound)
 
 
-def generate_prompt(clazz, parens, semi):
+def generate_prompt(names_bounds, clazz, parens, semi):
     specifiers = "", "private", "protected", "public"
 
-    parents = [random_name() for _ in range(random.randint(1, 10))]
+    parents = [random_name(names_bounds) for _ in range(random.randint(1, 10))]
     duplicates = random.randint(0, 2)
     for _ in range(duplicates):
         parents.append(random.choice(parents))
@@ -114,7 +114,7 @@ def generate_prompt(clazz, parens, semi):
     spaces2 = random_spaces(1, 5)
     spaces3 = random_spaces(1, 5)
     spaces4 = random_spaces(1, 5)
-    name = random_name()
+    name = random_name(names_bounds)
     return (
         f"{clazz}{spaces1}{name}{spaces2}:{spaces3}{pairs}{spaces4}{parens}{semi}",
         name if duplicates else "",
@@ -122,7 +122,7 @@ def generate_prompt(clazz, parens, semi):
 
 
 def generate_correct_prompt():
-    return generate_prompt("class", "{}", ";")
+    return generate_prompt((5, 25), "class", "{}", ";")
 
 
 def generate_semicorrect_prompt():
@@ -130,7 +130,7 @@ def generate_semicorrect_prompt():
     parens = "()", "[]", "{ }", "p", ""
     semi = ";;", " ;", ""
     return generate_prompt(
-        random.choice(classes), random.choice(parens), random.choice(semi)
+        (0, 5), random.choice(classes), random.choice(parens), random.choice(semi)
     )[0], ""
 
 
@@ -181,6 +181,9 @@ prompts += [
     ("class ab  :  gg, public jj {}", "", False),
     ("class ab  :  gg, public jj {};", "", True),
     ("class ab  :  gg, public jj, private jj {};", "ab", True),
+    ("class ab  :  gg, public , private jj {};", "", True),  # hmm!
+    ("class ab  :  gg, public 0, private jj {};", "", False),
+    ("class ab  :  gg, , private jj {};", "", False),
 ]
 
 test_all(args, prompts)
