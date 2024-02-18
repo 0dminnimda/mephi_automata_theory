@@ -16,7 +16,7 @@ MAIN = "main.py"
 TEST_CASE = tuple[str, str, bool]
 
 
-def test_args(args: str, cases: list[TEST_CASE]) -> bool:
+def test_args(args: str, cases: list[TEST_CASE], verbose: int) -> bool:
     output = subprocess.run(
         f"python {MAIN} {args}".split(" "),
         shell=True,
@@ -33,15 +33,19 @@ def test_args(args: str, cases: list[TEST_CASE]) -> bool:
         lines, lines[len(cases) :], cases
     ):
         if (line == "OK") is should_match:
-            print(GREEN + f"  Test {i} passed: correctness" + CLEAR, repr(prompt))
+            if verbose:
+                print(GREEN + f"  Test {i} passed: correctness" + CLEAR, repr(prompt))
         else:
-            print(RED + f"  Test {i} failed: correctness" + CLEAR, f"{line} != {should_match}", " - ", repr(prompt))
+            if verbose:
+                print(RED + f"  Test {i} failed: correctness" + CLEAR, f"{line} != {should_match}", " - ", repr(prompt))
             passed = False
 
         if report == name:
-            print(GREEN + f"  Test {i} passed: report" + CLEAR, repr(prompt))
+            if verbose:
+                print(GREEN + f"  Test {i} passed: report" + CLEAR, repr(prompt))
         else:
-            print(RED + f"  Test {i} failed: report" + CLEAR, f"{report!r} != {name!r}", repr(prompt))
+            if verbose:
+                print(RED + f"  Test {i} failed: report" + CLEAR, f"{report!r} != {name!r}", repr(prompt))
             passed = False
 
         i += 1
@@ -49,12 +53,12 @@ def test_args(args: str, cases: list[TEST_CASE]) -> bool:
     return passed
 
 
-def test_all(args: list[str], cases: list[TEST_CASE]) -> None:
+def test_all(args: list[str], cases: list[TEST_CASE], verbose: int) -> None:
     passed = True
     for arg in args:
         print("Testing args:", arg)
 
-        passed_this = test_args(arg, cases)
+        passed_this = test_args(arg, cases, verbose)
 
         if not passed_this:
             print(RED + "Args failed:" + CLEAR, arg)
@@ -157,8 +161,8 @@ args = [
     "-v1",
     "-v2",
 ]
-prompts = generate_prompts(100)
-prompts += [
+cases = generate_prompts(1_000_000)
+cases += [
     ("C", "", False),
     ("cL", "", False),
     ("clA", "", False),
@@ -185,5 +189,15 @@ prompts += [
     ("class ab  :  gg, public 0, private jj {};", "", False),
     ("class ab  :  gg, , private jj {};", "", False),
 ]
+verbose = 0
+produce_input: Path | None = Path("input.txt")
 
-test_all(args, prompts)
+if produce_input is not None:
+    with produce_input.open("w") as file:
+        for i, it in enumerate(cases):
+            if i:
+                file.write("\n")
+            file.write(it[0])
+        produce_input.write_text("\n".join(it[0] for it in cases))
+else:
+    test_all(args, cases, verbose)
