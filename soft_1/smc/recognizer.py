@@ -49,7 +49,7 @@ def has_duplicates(x):
     return any(i in seen or seen.add(i) for i in x)
 
 
-def match(string: str) -> tuple[bool, str | None]:
+def match(string):  # type: (str) -> tuple[bool, str | None]
     rec = Recognizer(string)
     while not rec.finished:
         # print(rec.peek(), rec.getState().getName())
