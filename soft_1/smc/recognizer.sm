@@ -1,0 +1,86 @@
+%class Recognizer
+
+%package recognizer
+
+%start MainMap::class_kw
+
+%map MainMap
+
+%%
+
+Default {
+  next no_match { finish(); }
+}
+
+class_kw {
+  next [ ctxt.match_and_consume("class") and ctxt.peek().isspace() ] post_class { consume(); }
+}
+
+post_class {
+  next [ ctxt.peek().isspace() ]      post_class { consume(); }
+  next [ ctxt.peek().isidentifier() ] class_name {}
+}
+
+class_name {
+  next [ ctxt.peek().isdigit() or ctxt.peek().isidentifier() ] class_name             { consume(); }
+  next [ ctxt.peek().isspace() ]                               post_class_name_spaces { consume(); }
+  next [ ctxt.peek() == ":" ]                                  post_colon_space       { consume(); }
+}
+
+post_class_name_spaces {
+  next [ ctxt.peek().isspace() ] post_class_name_spaces { consume(); }
+  next [ ctxt.peek() == ":" ]    post_colon_space       { consume(); }
+}
+
+post_colon_space {
+  next [ ctxt.peek().isspace() ] post_colon { consume(); }
+}
+
+post_colon {
+  next [ ctxt.peek().isspace() ]      post_colon  { consume(); }
+  next [ ctxt.peek().isidentifier() ] parent_pair {}
+}
+
+parent_pair {
+  next [ ctxt.match_and_consume("private") and ctxt.peek().isspace() ]   parent_name { consume(); }
+  next [ ctxt.match_and_consume("protected") and ctxt.peek().isspace() ] parent_name { consume(); }
+  next [ ctxt.match_and_consume("public") and ctxt.peek().isspace() ]    parent_name { consume(); }
+  next [ ctxt.peek().isidentifier() ]                                    parent_name {}
+}
+
+parent_name {
+  next [ ctxt.peek().isdigit() or ctxt.peek().isidentifier() ] parent_name             { consume(); }
+  next [ ctxt.peek().isspace() ]                               post_parent_name_spaces { consume(); }
+  next [ ctxt.peek() == "," ]                                  post_comma              { consume(); }
+}
+
+post_parent_name_spaces {
+  next [ ctxt.peek().isspace() ] post_parent_name_spaces { consume(); }
+  next [ ctxt.peek() == "," ]    post_comma              { consume(); }
+  next [ ctxt.peek() == "{" ]    curlies                 { consume(); }
+}
+
+post_comma {
+  next [ ctxt.peek().isspace() ]      post_comma  { consume(); }
+  next [ ctxt.peek().isidentifier() ] parent_pair {}
+}
+
+curlies {
+  next [ ctxt.peek() == "}" ] post_curlies { consume(); }
+}
+
+post_curlies {
+  next [ ctxt.peek() == ";" ] end { consume(); }
+}
+
+end {
+  next [ ctxt.peek() == "" ] match { finish(); }
+}
+
+no_match {}
+
+match {
+  next match { finish(); }
+}
+
+%%

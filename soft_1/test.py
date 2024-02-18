@@ -108,7 +108,32 @@ def generate_prompts(n: int) -> list[TEST_CASE]:
     return result
 
 
-files = [Path("as_regex.py")]
-prompts = [] + generate_prompts(100)
+files = [
+    Path("regex/recognizer.py"),
+    Path("smc/recognizer.py"),
+]
+prompts = generate_prompts(100) + [
+    ("C", False),
+    ("cL", False),
+    ("clA", False),
+    ("claS", False),
+    ("clasS", False),
+    ("class ", False),
+    ("class a", False),
+    ("class ab", False),
+    ("class ab ", False),
+    ("class ab  ", False),
+    ("class ab  :", False),
+    ("class ab  : ", False),
+    ("class ab  :  ", False),
+    ("class ab  :  g", False),
+    ("class ab  :  gg", False),
+    ("class ab  :  gg, ", False),
+    ("class ab  :  gg, public", False),
+    ("class ab  :  gg, public jj", False),
+    ("class ab  :  gg, public jj {", False),
+    ("class ab  :  gg, public jj {}", False),
+    ("class ab  :  gg, public jj {};", True),
+]
 
 test_all(files, prompts)
