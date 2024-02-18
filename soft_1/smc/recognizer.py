@@ -37,6 +37,12 @@ class Recognizer:
     def finish(self):
         self.finished = True
 
+    def get_captures(self):
+        for _ in range(0, len(self.saved), 2):
+            start = self.saved.popleft()
+            end = self.saved.popleft()
+            yield self.string[start:end]
+
     def next(self):
         return self._fsm.next()
 
@@ -58,14 +64,9 @@ def match(string):  # type: (str) -> tuple[bool, str | None]
     if rec.getState() is not MainMap.match:
         return False, None
 
-    assert len(rec.saved) % 2 == 0
-    captures = deque()
-    for _ in range(0, len(rec.saved), 2):
-        start = rec.saved.popleft()
-        end = rec.saved.popleft()
-        captures.append(string[start:end])
-
-    name = captures.popleft()
+    # assert len(rec.saved) % 2 == 0
+    captures = rec.get_captures()
+    name = next(captures)
     if has_duplicates(captures):
         return True, name
     return True, None
