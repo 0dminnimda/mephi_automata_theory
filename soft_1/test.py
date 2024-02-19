@@ -50,6 +50,12 @@ def test_args(args: str, cases: list[TEST_CASE], verbose: int) -> bool:
 
         i += 1
 
+    i -= 1
+    if i != len(cases):
+        if verbose:
+            print(RED + f"  Only {i} out of {len(cases)} tests had output" + CLEAR)
+        passed = False
+
     return passed
 
 
