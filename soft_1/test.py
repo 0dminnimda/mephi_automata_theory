@@ -75,7 +75,6 @@ def test_all(args: list[str], cases: list[TEST_CASE], verbose: int) -> None:
 
         passed = passed and passed_this
 
-
     print("\n" + "=" * 80)
     if not passed:
         print(RED + "Some files failed!" + CLEAR)
@@ -108,14 +107,18 @@ def random_spaces(lower_bound: int = 1, upper_bound: int = 20) -> str:
 def generate_prompt(names_bounds, space_bounds, clazz, parents_bounds, parens, semi):
     specifiers = "", "private", "protected", "public"
 
-    parents = [random_name(names_bounds) for _ in range(random.randint(*parents_bounds))]
+    parents = [
+        random_name(names_bounds) for _ in range(random.randint(*parents_bounds))
+    ]
     duplicates = random.randint(0, 2 if parents else 0)
     for _ in range(duplicates):
         parents.append(random.choice(parents))
 
     pairs = ",".join(
         random_spaces(0, 5)
-        + f"{random.choice(specifiers)} {parent}"
+        + random.choice(specifiers)
+        + random_spaces(*space_bounds)
+        + parent
         + random_spaces(0, 5)
         for parent in parents
     )
@@ -139,9 +142,17 @@ def generate_semicorrect_prompt():
     classes = "clasS", "claSs", "clAss", "cLass", "Class", "cla", "c", "al", "ass", ""
     parens = "()", "[]", "{ }", "p", ""
     semi = ";;", " ;", ""
-    return generate_prompt(
-        (0, 5), (0, 3), random.choice(classes), (0, 5), random.choice(parens), random.choice(semi)
-    )[0], ""
+    return (
+        generate_prompt(
+            (0, 5),
+            (0, 3),
+            random.choice(classes),
+            (0, 5),
+            random.choice(parens),
+            random.choice(semi),
+        )[0],
+        "",
+    )
 
 
 def generate_incorrect_prompt():
