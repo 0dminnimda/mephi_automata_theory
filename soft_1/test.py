@@ -177,7 +177,6 @@ def generate_prompts(n: int):
 
 def generate_test_data(gen):
     gen_iter = iter(gen)
-    gen_iter.send(None)
     for size in gen_iter:
         produce_input = Path(f"input_{size}.txt")
         if produce_input.exists():
