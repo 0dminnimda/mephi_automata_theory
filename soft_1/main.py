@@ -45,14 +45,16 @@ else:
 from recognizer import match
 
 
+lines = file.read().splitlines()
+
 if args.time:
     start = time.perf_counter()
-    for line in file.read().splitlines():
+    for line in lines:
         _ = match(line)
     print(time.perf_counter() - start)
 else:
     results = []
-    for line in file.read().splitlines():
+    for line in lines:
         ok, res = match(line)
         if ok:
             print("OK", file=output)

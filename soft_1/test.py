@@ -11,15 +11,14 @@ CLEAR = "\033[0m"
 
 
 MAIN = "main.py"
-PYTHON = "python"
 
 
 TEST_CASE = tuple[str, str, bool]
 
 
-def test_args(args: str, cases: list[TEST_CASE], verbose: int) -> bool:
+def test_args(prog: str, args: str, cases: list[TEST_CASE], verbose: int) -> bool:
     output = subprocess.run(
-        f"{PYTHON} {MAIN} {args}".split(" "),
+        f"{prog} {MAIN} {args}".split(" "),
         shell=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
@@ -61,17 +60,17 @@ def test_args(args: str, cases: list[TEST_CASE], verbose: int) -> bool:
     return passed
 
 
-def test_all(args: list[str], cases: list[TEST_CASE], verbose: int) -> None:
+def test_all(prog_args: list[tuple[str, str]], cases: list[TEST_CASE], verbose: int) -> None:
     passed = True
-    for arg in args:
-        print("Testing args:", arg)
+    for prog, args in prog_args:
+        print("Testing args:", prog, args)
 
-        passed_this = test_args(arg, cases, verbose)
+        passed_this = test_args(prog, args, cases, verbose)
 
         if not passed_this:
-            print(RED + "Args failed:" + CLEAR, arg)
+            print(RED + "Args failed:" + CLEAR, prog, args)
         else:
-            print(GREEN + "Args passed:" + CLEAR, arg)
+            print(GREEN + "Args passed:" + CLEAR, prog, args)
 
         print()
 
@@ -176,13 +175,43 @@ def generate_prompts(n: int):
     return result
 
 
-args = [
-    "-v1",
-    "-v2",
-    "-v3",
-]
-cases = generate_prompts(1_000)
-cases += [
+def generate_test_data(gen):
+    for cases in gen:
+        produce_input = Path(f"input_{len(cases)}.txt")
+        if produce_input.exists():
+            yield produce_input
+            continue
+
+        with produce_input.open("w") as file:
+            for i, it in enumerate(cases):
+                if i:
+                    file.write("\n")
+                file.write(it[0])
+            produce_input.write_text("\n".join(it[0] for it in cases))
+        yield produce_input
+
+
+def successive_test_case_generator(mx: int):
+    yield []
+    yield USER_CASES
+
+    for i in range(2, mx):
+        yield generate_prompts(10**i) + USER_CASES
+
+
+def time_runs(prog_args: list[tuple[str, str]], mx: int):
+    for prog, args in prog_args:
+        args += " -t"
+        for file in generate_test_data(successive_test_case_generator(mx)):
+            print(f"{prog} {args} {file}: ", end="", flush=True)
+            subprocess.run(
+                f"{prog} {MAIN} {args} {file}".split(" "),
+                shell=True,
+                encoding="utf-8",
+            )
+
+
+USER_CASES = [
     ("C", "", False),
     ("cL", "", False),
     ("clA", "", False),
@@ -210,15 +239,30 @@ cases += [
     ("class ab  :  gg, public 0, private jj {};", "", False),
     ("class ab  :  gg, , private jj {};", "", False),
 ]
-verbose = 0
-produce_input: Path | None = None  # Path("input.txt")
 
-if produce_input is not None:
-    with produce_input.open("w") as file:
-        for i, it in enumerate(cases):
-            if i:
-                file.write("\n")
-            file.write(it[0])
-        produce_input.write_text("\n".join(it[0] for it in cases))
+programs = [
+    "python",
+    "pypy",
+    "pypy",
+
+    "python",
+    "python",
+]
+args = [
+    "-v1",
+    "-v2",
+    "-v3",
+
+    "-v3",
+    "-v2",
+]
+verbose = 0
+do_timeing = False
+
+prog_args = list(zip(programs, args))
+
+if do_timeing:
+    time_runs(prog_args, 7)
 else:
-    test_all(args, cases, verbose)
+    cases = generate_prompts(1_000) + USER_CASES
+    test_all(prog_args, cases, verbose)
