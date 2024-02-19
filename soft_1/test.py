@@ -193,6 +193,7 @@ cases += [
     ("class ab  :  gg, public jj {};", "", True),
     ("class ab  :  gg, public jj, private jj {};", "ab", True),
     ("class ab  :  gg, public , private jj {};", "", True),  # hmm!
+    ("class ab  :  gg, public , public, private jj {};", "ab", True),  # hmm!
     ("class ab  :  gg, public 0, private jj {};", "", False),
     ("class ab  :  gg, , private jj {};", "", False),
 ]
