@@ -160,6 +160,7 @@ def generate_prompts(n: int):
 args = [
     "-v1",
     "-v2",
+    "-v3",
 ]
 cases = generate_prompts(1_000)
 cases += [

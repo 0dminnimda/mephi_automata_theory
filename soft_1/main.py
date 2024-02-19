@@ -35,7 +35,7 @@ DIR = Path(__file__).parent
 
 
 if args.version == 3:
-    sys.path.insert(0, str(DIR / "flex"))
+    sys.path.insert(0, str(DIR / "lex"))
 elif args.version == 2:
     sys.path.insert(0, str(DIR / "smc"))
 else:
