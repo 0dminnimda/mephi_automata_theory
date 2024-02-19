@@ -11,6 +11,7 @@ CLEAR = "\033[0m"
 
 
 MAIN = "main.py"
+PYTHON = "python"
 
 
 TEST_CASE = tuple[str, str, bool]
@@ -18,7 +19,7 @@ TEST_CASE = tuple[str, str, bool]
 
 def test_args(args: str, cases: list[TEST_CASE], verbose: int) -> bool:
     output = subprocess.run(
-        f"python {MAIN} {args}".split(" "),
+        f"{PYTHON} {MAIN} {args}".split(" "),
         shell=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
