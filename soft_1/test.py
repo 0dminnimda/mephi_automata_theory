@@ -176,12 +176,17 @@ def generate_prompts(n: int):
 
 
 def generate_test_data(gen):
-    for cases in gen:
-        produce_input = Path(f"input_{len(cases)}.txt")
+    gen_iter = iter(gen)
+    gen_iter.send(None)
+    for size in gen_iter:
+        produce_input = Path(f"input_{size}.txt")
         if produce_input.exists():
+            gen_iter.send(False)
             yield produce_input
             continue
 
+        gen_iter.send(True)
+        cases = next(gen_iter)
         with produce_input.open("w") as file:
             for i, it in enumerate(cases):
                 if i:
@@ -192,11 +197,24 @@ def generate_test_data(gen):
 
 
 def successive_test_case_generator(mx: int):
-    yield []
-    yield USER_CASES
+    yield 0
+    do = yield
+    if do:
+        yield []
+
+    yield len(USER_CASES)
+    do = yield
+    if do:
+        yield USER_CASES
 
     for i in range(2, mx):
-        yield generate_prompts(10**i) + USER_CASES
+        size = 10**i
+        yield (size//3)*3 + len(USER_CASES)
+        do = yield
+        if do:
+            arr = generate_prompts(size) + USER_CASES
+            random.shuffle(arr)
+            yield arr
 
 
 def time_runs(prog_args: list[tuple[str, str]], mx: int):
