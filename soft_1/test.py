@@ -28,6 +28,7 @@ def test_args(args: str, cases: list[TEST_CASE], verbose: int) -> bool:
 
     passed = True
     lines = output.stdout.splitlines()
+    # print(*lines, sep="\n")
     i = 1
     for line, report, (prompt, name, should_match) in zip(
         lines, lines[len(cases) :], cases

@@ -66,7 +66,7 @@ class MainMap_post_class(MainMap_Default):
             fsm.getState().Exit(fsm)
             fsm.clearState()
             try:
-                ctxt.save_position()
+                ctxt.push_position()
             finally:
                 fsm.setState(MainMap.class_name)
                 fsm.getState().Entry(fsm)
@@ -89,7 +89,7 @@ class MainMap_class_name(MainMap_Default):
             fsm.getState().Exit(fsm)
             fsm.clearState()
             try:
-                ctxt.save_position()
+                ctxt.push_position()
                 ctxt.consume()
             finally:
                 fsm.setState(MainMap.post_class_name_spaces)
@@ -98,7 +98,7 @@ class MainMap_class_name(MainMap_Default):
             fsm.getState().Exit(fsm)
             fsm.clearState()
             try:
-                ctxt.save_position()
+                ctxt.push_position()
                 ctxt.consume()
             finally:
                 fsm.setState(MainMap.post_colon_space)
@@ -169,40 +169,76 @@ class MainMap_parent_pair(MainMap_Default):
 
     def next(self, fsm):
         ctxt = fsm.getOwner()
-        if  ctxt.match("private") and ctxt.peek(7).isspace() and ctxt.peek(8).isidentifier()  :
+        if  ctxt.match("private") and ctxt.peek(7).isspace()  :
             fsm.getState().Exit(fsm)
             fsm.clearState()
             try:
-                ctxt.consume(8)
-                ctxt.save_position()
-            finally:
-                fsm.setState(MainMap.parent_name)
-                fsm.getState().Entry(fsm)
-        elif  ctxt.match("protected") and ctxt.peek(9).isspace() and ctxt.peek(10).isidentifier()  :
-            fsm.getState().Exit(fsm)
-            fsm.clearState()
-            try:
-                ctxt.consume(10)
-                ctxt.save_position()
-            finally:
-                fsm.setState(MainMap.parent_name)
-                fsm.getState().Entry(fsm)
-        elif  ctxt.match("public") and ctxt.peek(6).isspace() and ctxt.peek(7).isidentifier()  :
-            fsm.getState().Exit(fsm)
-            fsm.clearState()
-            try:
+                ctxt.push_position()
                 ctxt.consume(7)
-                ctxt.save_position()
+                ctxt.push_position()
             finally:
-                fsm.setState(MainMap.parent_name)
+                fsm.setState(MainMap.parent_pair_middle)
+                fsm.getState().Entry(fsm)
+        elif  ctxt.match("protected") and ctxt.peek(9).isspace()  :
+            fsm.getState().Exit(fsm)
+            fsm.clearState()
+            try:
+                ctxt.push_position()
+                ctxt.consume(9)
+                ctxt.push_position()
+            finally:
+                fsm.setState(MainMap.parent_pair_middle)
+                fsm.getState().Entry(fsm)
+        elif  ctxt.match("public") and ctxt.peek(6).isspace()  :
+            fsm.getState().Exit(fsm)
+            fsm.clearState()
+            try:
+                ctxt.push_position()
+                ctxt.consume(6)
+                ctxt.push_position()
+            finally:
+                fsm.setState(MainMap.parent_pair_middle)
                 fsm.getState().Entry(fsm)
         elif  ctxt.peek().isidentifier()  :
             fsm.getState().Exit(fsm)
             fsm.clearState()
             try:
-                ctxt.save_position()
+                ctxt.push_position()
             finally:
                 fsm.setState(MainMap.parent_name)
+                fsm.getState().Entry(fsm)
+        else:
+            MainMap_Default.next(self, fsm)
+        
+class MainMap_parent_pair_middle(MainMap_Default):
+
+    def next(self, fsm):
+        ctxt = fsm.getOwner()
+        if  ctxt.peek().isspace()  :
+            fsm.getState().Exit(fsm)
+            fsm.clearState()
+            try:
+                ctxt.consume()
+            finally:
+                fsm.setState(MainMap.parent_pair_middle)
+                fsm.getState().Entry(fsm)
+        elif  ctxt.peek().isidentifier()  :
+            fsm.getState().Exit(fsm)
+            fsm.clearState()
+            try:
+                ctxt.pop_position()
+                ctxt.pop_position()
+                ctxt.push_position()
+            finally:
+                fsm.setState(MainMap.parent_name)
+                fsm.getState().Entry(fsm)
+        elif  ctxt.peek() == ","  :
+            fsm.getState().Exit(fsm)
+            fsm.clearState()
+            try:
+                ctxt.consume()
+            finally:
+                fsm.setState(MainMap.post_comma)
                 fsm.getState().Entry(fsm)
         else:
             MainMap_Default.next(self, fsm)
@@ -223,7 +259,7 @@ class MainMap_parent_name(MainMap_Default):
             fsm.getState().Exit(fsm)
             fsm.clearState()
             try:
-                ctxt.save_position()
+                ctxt.push_position()
                 ctxt.consume()
             finally:
                 fsm.setState(MainMap.post_parent_name_spaces)
@@ -232,7 +268,7 @@ class MainMap_parent_name(MainMap_Default):
             fsm.getState().Exit(fsm)
             fsm.clearState()
             try:
-                ctxt.save_position()
+                ctxt.push_position()
                 ctxt.consume()
             finally:
                 fsm.setState(MainMap.post_comma)
@@ -362,14 +398,15 @@ class MainMap(object):
     post_colon_space = MainMap_post_colon_space('MainMap.post_colon_space', 4)
     post_colon = MainMap_post_colon('MainMap.post_colon', 5)
     parent_pair = MainMap_parent_pair('MainMap.parent_pair', 6)
-    parent_name = MainMap_parent_name('MainMap.parent_name', 7)
-    post_parent_name_spaces = MainMap_post_parent_name_spaces('MainMap.post_parent_name_spaces', 8)
-    post_comma = MainMap_post_comma('MainMap.post_comma', 9)
-    curlies = MainMap_curlies('MainMap.curlies', 10)
-    post_curlies = MainMap_post_curlies('MainMap.post_curlies', 11)
-    end = MainMap_end('MainMap.end', 12)
-    no_match = MainMap_no_match('MainMap.no_match', 13)
-    match = MainMap_match('MainMap.match', 14)
+    parent_pair_middle = MainMap_parent_pair_middle('MainMap.parent_pair_middle', 7)
+    parent_name = MainMap_parent_name('MainMap.parent_name', 8)
+    post_parent_name_spaces = MainMap_post_parent_name_spaces('MainMap.post_parent_name_spaces', 9)
+    post_comma = MainMap_post_comma('MainMap.post_comma', 10)
+    curlies = MainMap_curlies('MainMap.curlies', 11)
+    post_curlies = MainMap_post_curlies('MainMap.post_curlies', 12)
+    end = MainMap_end('MainMap.end', 13)
+    no_match = MainMap_no_match('MainMap.no_match', 14)
+    match = MainMap_match('MainMap.match', 15)
     Default = MainMap_Default('MainMap.Default', -1)
 
 class Recognizer_sm(statemap.FSMContext):

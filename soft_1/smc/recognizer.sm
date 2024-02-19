@@ -18,13 +18,13 @@ class_kw {
 
 post_class {
   next [ ctxt.peek().isspace() ]      post_class { consume(); }
-  next [ ctxt.peek().isidentifier() ] class_name { save_position(); }
+  next [ ctxt.peek().isidentifier() ] class_name { push_position(); }
 }
 
 class_name {
   next [ ctxt.peek().isdigit() or ctxt.peek().isidentifier() ] class_name             { consume(); }
-  next [ ctxt.peek().isspace() ]                               post_class_name_spaces { save_position(); consume(); }
-  next [ ctxt.peek() == ":" ]                                  post_colon_space       { save_position(); consume(); }
+  next [ ctxt.peek().isspace() ]                               post_class_name_spaces { push_position(); consume(); }
+  next [ ctxt.peek() == ":" ]                                  post_colon_space       { push_position(); consume(); }
 }
 
 post_class_name_spaces {
@@ -42,16 +42,22 @@ post_colon {
 }
 
 parent_pair {
-  next [ ctxt.match("private") and ctxt.peek(7).isspace() and ctxt.peek(8).isidentifier() ]   parent_name { consume(8); save_position(); }
-  next [ ctxt.match("protected") and ctxt.peek(9).isspace() and ctxt.peek(10).isidentifier() ] parent_name { consume(10); save_position(); }
-  next [ ctxt.match("public") and ctxt.peek(6).isspace() and ctxt.peek(7).isidentifier() ]    parent_name { consume(7); save_position(); }
-  next [ ctxt.peek().isidentifier() ]                                                                    parent_name { save_position(); }
+  next [ ctxt.match("private") and ctxt.peek(7).isspace() ]   parent_pair_middle { push_position(); consume(7); push_position(); }
+  next [ ctxt.match("protected") and ctxt.peek(9).isspace() ] parent_pair_middle { push_position(); consume(9); push_position(); }
+  next [ ctxt.match("public") and ctxt.peek(6).isspace() ]    parent_pair_middle { push_position(); consume(6); push_position(); }
+  next [ ctxt.peek().isidentifier() ]                         parent_name        { push_position(); }
+}
+
+parent_pair_middle {
+  next [ ctxt.peek().isspace() ]      parent_pair_middle { consume(); }
+  next [ ctxt.peek().isidentifier() ] parent_name        { pop_position(); pop_position(); push_position(); }
+  next [ ctxt.peek() == "," ]         post_comma         { consume(); }
 }
 
 parent_name {
   next [ ctxt.peek().isdigit() or ctxt.peek().isidentifier() ] parent_name             { consume(); }
-  next [ ctxt.peek().isspace() ]                               post_parent_name_spaces { save_position(); consume(); }
-  next [ ctxt.peek() == "," ]                                  post_comma              { save_position(); consume(); }
+  next [ ctxt.peek().isspace() ]                               post_parent_name_spaces { push_position(); consume(); }
+  next [ ctxt.peek() == "," ]                                  post_comma              { push_position(); consume(); }
 }
 
 post_parent_name_spaces {
