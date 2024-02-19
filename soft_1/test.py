@@ -99,11 +99,11 @@ def random_spaces(lower_bound: int = 1, upper_bound: int = 20) -> str:
     return " " * random.randint(lower_bound, upper_bound)
 
 
-def generate_prompt(names_bounds, clazz, parens, semi):
+def generate_prompt(names_bounds, space_bounds, clazz, parents_bounds, parens, semi):
     specifiers = "", "private", "protected", "public"
 
-    parents = [random_name(names_bounds) for _ in range(random.randint(1, 10))]
-    duplicates = random.randint(0, 2)
+    parents = [random_name(names_bounds) for _ in range(random.randint(*parents_bounds))]
+    duplicates = random.randint(0, 2 if parents else 0)
     for _ in range(duplicates):
         parents.append(random.choice(parents))
 
@@ -114,10 +114,10 @@ def generate_prompt(names_bounds, clazz, parens, semi):
         for parent in parents
     )
 
-    spaces1 = random_spaces(1, 5)
-    spaces2 = random_spaces(1, 5)
-    spaces3 = random_spaces(1, 5)
-    spaces4 = random_spaces(1, 5)
+    spaces1 = random_spaces(*space_bounds)
+    spaces2 = random_spaces(*space_bounds)
+    spaces3 = random_spaces(*space_bounds)
+    spaces4 = random_spaces(*space_bounds)
     name = random_name(names_bounds)
     return (
         f"{clazz}{spaces1}{name}{spaces2}:{spaces3}{pairs}{spaces4}{parens}{semi}",
@@ -126,7 +126,7 @@ def generate_prompt(names_bounds, clazz, parens, semi):
 
 
 def generate_correct_prompt():
-    return generate_prompt((5, 25), "class", "{}", ";")
+    return generate_prompt((5, 25), (1, 5), "class", (1, 10), "{}", ";")
 
 
 def generate_semicorrect_prompt():
@@ -134,7 +134,7 @@ def generate_semicorrect_prompt():
     parens = "()", "[]", "{ }", "p", ""
     semi = ";;", " ;", ""
     return generate_prompt(
-        (0, 5), random.choice(classes), random.choice(parens), random.choice(semi)
+        (0, 5), (0, 3), random.choice(classes), (0, 5), random.choice(parens), random.choice(semi)
     )[0], ""
 
 
@@ -161,7 +161,7 @@ args = [
     "-v1",
     "-v2",
 ]
-cases = generate_prompts(1_000_000)
+cases = generate_prompts(1_000)
 cases += [
     ("C", "", False),
     ("cL", "", False),
@@ -190,7 +190,7 @@ cases += [
     ("class ab  :  gg, , private jj {};", "", False),
 ]
 verbose = 0
-produce_input: Path | None = Path("input.txt")
+produce_input: Path | None = None  # Path("input.txt")
 
 if produce_input is not None:
     with produce_input.open("w") as file:
