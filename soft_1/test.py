@@ -19,7 +19,7 @@ TEST_CASE = tuple[str, str, bool]
 def test_args(prog: str, args: str, cases: list[TEST_CASE], verbose: int) -> bool:
     output = subprocess.run(
         f"{prog} {MAIN} {args}".split(" "),
-        shell=True,
+        #shell=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         encoding="utf-8",

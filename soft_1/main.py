@@ -45,7 +45,7 @@ else:
 from recognizer import match
 
 
-lines = file.read().splitlines()
+lines = file.read().split("\n")
 
 if args.time:
     start = time.perf_counter()
