@@ -258,13 +258,16 @@ USER_CASES = [
     ("", "", False),
 ]
 
-programs = [
-    "python",
-    "pypy",
-    "pypy",
+PYTHON = "python"  # "python3.11"
+PYPY = "pypy"
 
-    "python",
-    "python",
+programs = [
+    PYTHON,
+    PYPY,
+    PYPY,
+
+    PYTHON,
+    PYTHON,
 ]
 args = [
     "-v1",
