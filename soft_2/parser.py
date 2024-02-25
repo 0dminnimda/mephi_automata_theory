@@ -1,56 +1,5 @@
 from dataclasses import dataclass, field
-
-
-@dataclass(frozen=True)
-class RE:
-    pass
-
-
-@dataclass(frozen=True)
-class Epsilon(RE):
-    pass
-
-
-@dataclass(frozen=True)
-class Symbol(RE):
-    value: str
-
-
-@dataclass(frozen=True)
-class Concat(RE):
-    expressions: list[RE]
-
-
-@dataclass(frozen=True)
-class Or(RE):
-    expressions: list[RE]
-
-
-@dataclass(frozen=True)
-class AnyNumberOf(RE):
-    expr: RE
-
-
-@dataclass(frozen=True)
-class Maybe(RE):
-    expr: RE
-
-
-@dataclass(frozen=True)
-class Repeat(RE):
-    expr: RE
-    count: int
-
-
-@dataclass(frozen=True)
-class NamedGroup(RE):
-    name: str
-    expr: RE
-
-
-@dataclass(frozen=True)
-class NamedGroupReference(RE):
-    name: str
+from classes import RE, Epsilon, Symbol, Concat, Or, AnyNumberOf, Maybe, Repeat, NamedGroup
 
 
 PIPE = "|"
@@ -289,6 +238,6 @@ class Parser:
 
 parser = Parser()
 
-re = parser.parse("(a|%?%)...{2}?")
-
-print(re)
+if __name__ == "__main__":
+    re = parser.parse("(a|%?%)...{2}?")
+    print(re)
