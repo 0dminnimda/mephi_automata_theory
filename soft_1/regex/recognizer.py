@@ -1,8 +1,8 @@
 import regex
 
 name = r"([a-zA-Z_][a-zA-Z0-9_]*)"
-specifier = r"(?:private|protected|public)?"
-pair = fr"(?:{specifier}\s+{name})"
+specifier = r"(?:(?:private|protected|public)\s+)?"
+pair = fr"(?:{specifier}{name})"
 pairs = fr"{pair}(?:\s*,\s*{pair})*"
 class_pattern = fr"class\s+{name}\s*:\s+{pairs}\s+{{}};"
 class_regex = regex.compile(class_pattern)

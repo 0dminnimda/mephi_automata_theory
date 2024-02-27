@@ -255,6 +255,7 @@ USER_CASES = [
     ("class ab  :  gg, public , public, private jj {};", "ab", True),  # hmm!
     ("class ab  :  gg, public 0, private jj {};", "", False),
     ("class ab  :  gg, , private jj {};", "", False),
+    ("class public: class, public, class {};", "public", True),
     ("", "", False),
 ]
 
