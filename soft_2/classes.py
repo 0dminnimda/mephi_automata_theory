@@ -28,7 +28,7 @@ class Symbol(RE):
 
 @dataclass(frozen=True)
 class Concat(RE):
-    expressions: list[RE]
+    expressions: tuple[RE]
 
     def to_nfa(self) -> NFA:
         nfas = [expr.to_nfa() for expr in self.expressions]
@@ -49,7 +49,7 @@ class Concat(RE):
 
 @dataclass(frozen=True)
 class Or(RE):
-    expressions: list[RE]
+    expressions: tuple[RE]
 
     def to_nfa(self) -> NFA:
         nfas = [expr.to_nfa() for expr in self.expressions]

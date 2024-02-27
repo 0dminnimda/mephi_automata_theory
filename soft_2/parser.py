@@ -60,26 +60,7 @@ class Parser:
         return self.parse_expr()
 
     def parse_expr(self):
-        return self.parse_concat()
-
-    def parse_concat(self):
-        # r1r2
-        # r1r2r3...rn
-
-        expressions = []
-
-        while 1:
-            expr = self.parse_or()
-            if expr is not None:
-                expressions.append(expr)
-            else:
-                break
-
-        if len(expressions) <= 0:
-            return None
-        if len(expressions) == 1:
-            return expressions[0]
-        return Concat(expressions)
+        return self.parse_or()
 
     def parse_or(self):
         # r1|r2
@@ -89,7 +70,7 @@ class Parser:
         first = True
 
         while 1:
-            expr = self.parse_modyfiers()
+            expr = self.parse_concat()
             if expr is None:
                 expressions.append(Epsilon())
             else:
@@ -103,12 +84,31 @@ class Parser:
                 break
             first = False
 
-        expressions = list(set(expressions))
+        expressions = tuple(set(expressions))
         assert len(expressions) >= 1
 
         if len(expressions) == 1:
             return expressions[0]
         return Or(expressions)
+
+    def parse_concat(self):
+        # r1r2
+        # r1r2r3...rn
+
+        expressions = []
+
+        while 1:
+            expr = self.parse_modyfiers()
+            if expr is not None:
+                expressions.append(expr)
+            else:
+                break
+
+        if len(expressions) <= 0:
+            return None
+        if len(expressions) == 1:
+            return expressions[0]
+        return Concat(tuple(expressions))
 
     def parse_modyfiers(self):
         # r?
@@ -239,7 +239,7 @@ class Parser:
 parser = Parser()
 
 if __name__ == "__main__":
-    re = parser.parse("(a|%?%)...{2}?")
+    re = parser.parse("b|(a|%?%)...{2}?")
     print(re)
     nfa = re.to_nfa()
     print(nfa)
