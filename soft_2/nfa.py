@@ -50,6 +50,11 @@ class NFA(Generic[E]):
             current += max(nfa.states) + 1
             nfa.shift_states(current_save)
 
+    def add_state(self):
+        state = max(self.states) + 1
+        self.states.add(state)
+        return state
+
     def transitions_into(self, state, symbol):
         return self.transitions.get((state, symbol), set())
 

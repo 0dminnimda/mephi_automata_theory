@@ -39,12 +39,16 @@ class Concat(RE):
         transitions = union((a.transitions for a in nfas), dict())
         initial_states = nfas[0].initial_states if nfas else set()
         final_states = nfas[-1].final_states if nfas else set()
-        a = NFA(states, alphabet, transitions, initial_states, final_states)
+        result = NFA(states, alphabet, transitions, initial_states, final_states)
+
         for a1, a2 in zip(nfas, nfas[1:]):
+            middle = result.add_state()
             for q1 in a1.final_states:
-                for q2 in a2.initial_states:
-                    a.add_epsilon_transition(q1, q2)
-        return a
+                result.add_epsilon_transition(q1, middle)
+            for q2 in a2.initial_states:
+                result.add_epsilon_transition(middle, q2)
+
+        return result
 
 
 @dataclass(frozen=True)
@@ -73,11 +77,15 @@ class AnyNumberOf(RE):
 
     def to_nfa(self) -> NFA:
         nfa = self.expr.to_nfa()
-        a = Or.on_nfas([nfa, Epsilon().to_nfa()])
+        result = Or.on_nfas([nfa, Epsilon().to_nfa()])
+
+        middle = result.add_state()
         for q1 in nfa.final_states:
-            for q2 in nfa.initial_states:
-                a.add_epsilon_transition(q1, q2)
-        return a
+            result.add_epsilon_transition(q1, middle)
+        for q2 in nfa.initial_states:
+            result.add_epsilon_transition(middle, q2)
+
+        return result
 
 
 @dataclass(frozen=True)
