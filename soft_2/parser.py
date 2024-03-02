@@ -251,11 +251,12 @@ class Parser:
 parser = Parser()
 
 if __name__ == "__main__":
-    re = parser.parse("b|(a|%?%)...{2}?")
+    re = parser.parse("b|(a|%?%){2}?")
     print(re)
     nfa = re.to_nfa()
     print(nfa)
     print(nfa.run(""))
+    print(nfa.run("b"))
     print(nfa.run("a"))
     print(nfa.run("?"))
     print(nfa.run("aa"))
