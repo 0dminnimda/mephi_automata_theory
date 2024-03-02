@@ -58,11 +58,21 @@ class NFA(Generic[E]):
         if state2 in self.final_states:
             self.final_states = self.final_states | {state1}
 
+    def all_transitions(self, states, symbol):
+        return union_set(self.transitions_into(q, symbol) for q in states)
+
+    def epsilon_reachable(self, states) -> set[State]:
+        epsilon_reachable = states
+        while 1:
+            states = self.all_transitions(states, None)
+            if set.issubset(states, epsilon_reachable):
+                break
+            epsilon_reachable.update(states)
+        return epsilon_reachable
+
     def run(self, word):
         current_states = self.initial_states
         for symbol in word:
-            current_states = union_set(
-                self.transitions_into(q, symbol) | self.transitions_into(q, None)
-                for q in current_states
-            )
-        return bool(current_states & self.final_states)
+            full = self.epsilon_reachable(current_states)
+            current_states = self.all_transitions(full, symbol)
+        return not set.isdisjoint(current_states, self.final_states)
