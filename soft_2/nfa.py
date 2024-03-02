@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import TypeVar, Generic, Iterable
+from typing import TypeVar, Generic, Sequence
 
 
 State = int
@@ -43,13 +43,12 @@ class NFA(Generic[E]):
         self.final_states = {s + offset for s in self.final_states}
 
     @classmethod
-    def disjoin(cls, nfas: Iterable[NFA[E]]):
+    def disjoin(cls, nfas: Sequence[NFA[E]]):
         current = 0
         for nfa in nfas:
             current_save = current
             current += max(nfa.states) + 1
             nfa.shift_states(current_save)
-            yield nfa
 
     def transitions_into(self, state, symbol):
         return self.transitions.get((state, symbol), set())
