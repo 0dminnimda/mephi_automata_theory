@@ -94,7 +94,7 @@ class Repeat(RE):
     count: int
 
     def to_nfa(self) -> NFA:
-        return Concat(tuple([self.expr]*self.count)).to_nfa()
+        return Concat((self.expr,) * self.count).to_nfa()
 
 
 @dataclass(frozen=True)
