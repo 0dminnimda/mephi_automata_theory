@@ -85,7 +85,7 @@ class Maybe(RE):
     expr: RE
 
     def to_nfa(self) -> NFA:
-        return Or([self.expr, Epsilon()]).to_nfa()
+        return Or((self.expr, Epsilon())).to_nfa()
 
 
 @dataclass(frozen=True)
@@ -94,7 +94,7 @@ class Repeat(RE):
     count: int
 
     def to_nfa(self) -> NFA:
-        return Concat([self.expr]*self.count).to_nfa()
+        return Concat(tuple([self.expr]*self.count)).to_nfa()
 
 
 @dataclass(frozen=True)
