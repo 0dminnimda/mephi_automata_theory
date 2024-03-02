@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from classes import RE, Epsilon, Symbol, Concat, Or, AnyNumberOf, Maybe, Repeat, NamedGroup
+from classes import RE, Epsilon, Symbol, Concat, Or, AnyNumberOf, Maybe, Repeat, NamedGroup, NamedGroupReference
 
 
 PIPE = "|"
