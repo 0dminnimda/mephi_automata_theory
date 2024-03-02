@@ -26,6 +26,15 @@ META_CHARS = (
 )
 
 
+def iter_unique(x):
+    seen = set()
+    for it in x:
+        if it in seen:
+            continue
+        seen.add(it)
+        yield it
+
+
 @dataclass
 class Parser:
     string: str = ""
@@ -87,7 +96,7 @@ class Parser:
                 break
             first = False
 
-        expressions = tuple(set(expressions))
+        expressions = tuple(iter_unique(expressions))
         assert len(expressions) >= 1
 
         if len(expressions) == 1:
