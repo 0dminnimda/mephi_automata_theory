@@ -57,7 +57,10 @@ class Parser:
         self.string = string
         self.position = 0
 
-        return self.parse_expr()
+        res = self.parse_expr()
+
+        assert res is not None, "Parsing of the regex was unsuccesfull"
+        return res
 
     def parse_expr(self):
         return self.parse_or()
