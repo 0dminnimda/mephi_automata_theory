@@ -26,7 +26,7 @@ def union_dict(it):
 @dataclass
 class NFA(Generic[E]):
     states: set[State] = field(default_factory=set)  # Q
-    alphabet: set[E] = field(default_factory=set)  # Sigma
+    alphabet: set[E] = field(default_factory=set, repr=False)  # Sigma
     transitions: dict[tuple[State, E | None], set[State]] = field(
         default_factory=dict
     )  # delta
