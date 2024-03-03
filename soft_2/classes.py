@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 import string
-from nfa import NFA, union
+from nfa import NFA, union, NamedGroupString
 
 
 ALPHABET = set(string.printable)
@@ -39,7 +39,19 @@ class Concat(RE):
         transitions = union((a.transitions for a in nfas), dict())
         initial_states = nfas[0].initial_states if nfas else set()
         final_states = nfas[-1].final_states if nfas else set()
-        result = NFA(states, alphabet, transitions, initial_states, final_states)
+        named_groups = union((a.named_groups for a in nfas), set())
+        group_beginings = union((a.group_beginings for a in nfas), dict())
+        group_endings = union((a.group_endings for a in nfas), dict())
+        result = NFA(
+            states,
+            alphabet,
+            transitions,
+            initial_states,
+            final_states,
+            named_groups,
+            group_beginings,
+            group_endings,
+        )
 
         for a1, a2 in zip(nfas, nfas[1:]):
             middle = result.add_state()
@@ -68,7 +80,10 @@ class Or(RE):
         transitions = union((a.transitions for a in nfas), dict())
         initial_states = union((a.initial_states for a in nfas), set())
         final_states = union((a.final_states for a in nfas), set())
-        return NFA(states, alphabet, transitions, initial_states, final_states)
+        named_groups = union((a.named_groups for a in nfas), set())
+        group_beginings = union((a.group_beginings for a in nfas), dict())
+        group_endings = union((a.group_endings for a in nfas), dict())
+        return NFA(states, alphabet, transitions, initial_states, final_states, named_groups, group_beginings, group_endings)
 
 
 @dataclass(frozen=True)
@@ -111,9 +126,18 @@ class NamedGroup(RE):
     expr: RE
 
     def to_nfa(self) -> NFA:
-        raise NotImplementedError
-        # mark the iniital and final states to save the position
-        return self.expr.to_nfa()
+        nfa = self.expr.to_nfa()
+        nfa.named_groups.add(self.name)
+        # s1 = nfa.add_state()
+        for q in nfa.initial_states:
+            if q not in nfa.group_beginings:
+                nfa.group_beginings[q] = set()
+            nfa.group_beginings[q].add(self.name)
+        for q in nfa.final_states:
+            if q not in nfa.group_endings:
+                nfa.group_endings[q] = set()
+            nfa.group_endings[q].add(self.name)
+        return nfa
 
 
 @dataclass(frozen=True)
@@ -121,4 +145,4 @@ class NamedGroupReference(RE):
     name: str
 
     def to_nfa(self) -> NFA:
-        raise NotImplementedError
+        return NFA({0, 1}, ALPHABET, {(0, NamedGroupString(self.name)): {1}}, {0}, {1})

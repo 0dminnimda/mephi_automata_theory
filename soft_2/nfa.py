@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from typing import TypeVar, Generic, Sequence
+from collections import defaultdict
 
 
 State = int
@@ -23,6 +24,11 @@ def union_dict(it):
     return union(it, dict())
 
 
+@dataclass(frozen=True)
+class NamedGroupString:
+    name: str
+
+
 @dataclass
 class NFA(Generic[E]):
     states: set[State] = field(default_factory=set)  # Q
@@ -32,6 +38,9 @@ class NFA(Generic[E]):
     )  # delta
     initial_states: set[State] = field(default_factory=set)  # S
     final_states: set[State] = field(default_factory=set)  # F
+    named_groups: set[str] = field(default_factory=set)
+    group_beginings: dict[int, set[str]] = field(default_factory=dict)
+    group_endings: dict[int, set[str]] = field(default_factory=dict)
 
     def shift_states(self, offset: State):
         self.states = {s + offset for s in self.states}
@@ -75,9 +84,37 @@ class NFA(Generic[E]):
             epsilon_reachable.update(states)
         return epsilon_reachable
 
+    def run_group_capturing(self, word, i, states, last_positions, captures):
+        for q in states:
+            if q in self.group_endings:
+                for group in self.group_endings[q]:
+                    last_pos = last_positions.get(group)
+                    assert last_pos is not None, f"finishing a '{group}' group capture without starting it"
+                    captures[group].append(word[last_pos:i])
+                    last_positions[group] = None
+
+            if q in self.group_beginings:
+                for group in self.group_beginings[q]:
+                    assert last_positions.get(group) is None, f"starting a new '{group}' group capture without finishing the previous one"
+                    last_positions[group] = i
+
     def run(self, word):
+        last_positions = dict[str, int | None]()
+        captures = defaultdict[str, list[str]](list)
+
+        i = -1
         current_states = self.initial_states
-        for symbol in word:
+        for i, symbol in enumerate(word):
             full = self.epsilon_reachable(current_states)
+            self.run_group_capturing(word, i, full, last_positions, captures)
             current_states = self.all_transitions(full, symbol)
+            print(full, "->", current_states)
+
+        i += 1
+        full = self.epsilon_reachable(current_states)
+        self.run_group_capturing(word, i, full, last_positions, captures)
+
+        print(captures)
+        print(last_positions)
+
         return not set.isdisjoint(current_states, self.final_states)
