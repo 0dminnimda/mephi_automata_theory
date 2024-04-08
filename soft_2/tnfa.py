@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import TypeVar, Generic, Sequence, Iterable, NamedTuple
+from typing import TypeVar, Generic, Sequence, NamedTuple
 from collections import deque
 
 
@@ -62,38 +62,27 @@ class TNFA(Generic[E]):
         EpsilonTransition
     ]  # ∆ - optionally tagged ϵ-transitions with priority
 
-    # symbol_transitions: dict[
-    #     tuple[State, E], State
-    # ]  # ∆ - transitions on alphabet symbols
-    # epsilon_transitions: dict[
-    #     State, set[tuple[Priority, Tag | None, State]]
-    # ]  # ∆ - optionally tagged ϵ-transitions with priority
-
     named_groups_to_tags: dict[str, Tag] = field(default_factory=dict)
 
-    # def shift_states_and_tags(self, state_offset: State, tag_offset: Tag):
-    #     self.states = {s + state_offset for s in self.states}
-    #     self.symbol_transitions = {
-    #         (q + state_offset, a): p + state_offset
-    #         for (q, a), p in self.symbol_transitions.items()
-    #     }
-    #     self.epsilon_transitions = {
-    #         q + state_offset: {(i, t + tag_offset, p + state_offset) for (i, t, p) in ts}
-    #         for q, ts in self.epsilon_transitions.items()
-    #     }
-    #     self.initial_states = {s + state_offset for s in self.initial_states}
-    #     self.final_states = {s + state_offset for s in self.final_states}
+    def get_mapped_symbol_transitions(self) -> dict[tuple[State, E], State]:
+        mapped_sym = {}
+        for q, s, p in self.symbol_transitions:
+            val = mapped_sym.get((q, s), set())
+            mapped_sym[(q, s)] = val | {p}
+        return mapped_sym
 
-    # @classmethod
-    # def disjoin(cls, nfas: Sequence[TNFA[E]]):
-    #     current_state = 0
-    #     current_tag = 0
-    #     for tnfa in nfas:
-    #         current_state_save = current_state
-    #         current_state += max(tnfa.states) + 1
-    #         current_tag_save = current_tag
-    #         current_tag += max(tnfa.tags) + 1
-    #         tnfa.shift_states_and_tags(current_state_save, current_tag_save)
+    def get_ordered_mapped_epsilon_transitions(self) -> dict[
+        State, list[tuple[Tag | None, State]]
+    ]:
+        ordered_eps = {}
+        for q, prior, tag, p in self.epsilon_transitions:
+            val = ordered_eps.get(q, set())
+            ordered_eps[q] = val | {(prior, tag, p)}
+        ordered_eps = {
+            q: [(it[1], it[2]) for it in sorted(trs, key=lambda x: x[0])]
+            for q, trs in ordered_eps.items()
+        }
+        return ordered_eps
 
     def all_transitions(self, mapped_sym, states, symbol):
         return union_set(mapped_sym.get((q, symbol), set()) for q in states)
@@ -113,30 +102,14 @@ class TNFA(Generic[E]):
         return result
 
     def run(self, word):
-        # print(repr(word))
-        ordered_eps = {}
-        for q, prior, tag, p in self.epsilon_transitions:
-            val = ordered_eps.get(q, set())
-            ordered_eps[q] = val | {(prior, tag, p)}
-        ordered_eps = {
-            q: [(it[1], it[2]) for it in sorted(trs, key=lambda x: x[0])]
-            for q, trs in ordered_eps.items()
-        }
-
-        mapped_sym = {}
-        for q, s, p in self.symbol_transitions:
-            val = mapped_sym.get((q, s), set())
-            mapped_sym[(q, s)] = val | {p}
+        ordered_eps = self.get_ordered_mapped_epsilon_transitions()
+        mapped_sym = self.get_mapped_symbol_transitions()
 
         current_states = {self.initial_state}
-        # print(current_states)
         for symbol in word:
             full = self.epsilon_reachable(ordered_eps, current_states)
-            # print(full)
             current_states = self.all_transitions(mapped_sym, full, symbol)
-            # print(current_states)
         full = self.epsilon_reachable(ordered_eps, current_states)
-        # print(full)
 
         return self.final_state in full
 
@@ -183,11 +156,8 @@ class TNFA(Generic[E]):
     def simulation(self, word: str):
         print(repr(word))
 
-        ordered_eps = sorted(self.epsilon_transitions, key=lambda x: x.priority)
-        mapped_sym = {}
-        for q, s, p in self.symbol_transitions:
-            val = mapped_sym.get((q, s), set())
-            mapped_sym[(q, s)] = val | {p}
+        ordered_eps = self.get_ordered_mapped_epsilon_transitions()
+        mapped_sym = self.get_mapped_symbol_transitions()
 
         offsets = [None]*(max(self.tags)+1)
         confs = deque([(self.initial_state, offsets)])
@@ -233,6 +203,10 @@ ALPHABET = set(string.printable)
 
 @dataclass
 class Ast2Tnfa(Visitor):
+    """
+    Augmented Thompson's construction for TNFA
+    """
+
     next_state: State = 0
     next_tag: Tag = 0
     named_groups_to_tags: dict[str, tuple[Tag, Tag]] = field(default_factory=dict)
