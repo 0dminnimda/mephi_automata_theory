@@ -95,46 +95,61 @@ class TNFA(Generic[E]):
     #         current_tag += max(tnfa.tags) + 1
     #         tnfa.shift_states_and_tags(current_state_save, current_tag_save)
 
-    # def transitions_into(self, state, symbol):
-    #     return self.transitions.get((state, symbol), set())
+    def all_transitions(self, mapped_sym, states, symbol):
+        return union_set(mapped_sym.get((q, symbol), set()) for q in states)
 
-    # def add_epsilon_transition(self, state1, state2):
-    #     self.transitions[(state1, None)] = self.transitions_into(state1, None) | {state2}
-    #     if state2 in self.final_states:
-    #         self.final_states = self.final_states | {state1}
+    def epsilon_reachable(self, ordered_eps, states: set[State]) -> set[State]:
+        stack = deque(states)
+        result = set()
+        enqueued = set(stack)
+        while stack:
+            state = stack.pop()
+            result.add(state)
 
-    # def all_transitions(self, states, symbol):
-    #     return union_set(self.transitions_into(q, symbol) for q in states)
+            for tag, next_state in ordered_eps.get(state, []):
+                if next_state not in enqueued:
+                    stack.append(next_state)
 
-    # def epsilon_reachable(self, states) -> set[State]:
-    #     epsilon_reachable = states
-    #     while 1:
-    #         states = self.all_transitions(states, None)
-    #         if set.issubset(states, epsilon_reachable):
-    #             break
-    #         epsilon_reachable.update(states)
-    #     return epsilon_reachable
+        return result
 
-    # def run(self, word):
-    #     current_states = self.initial_states
-    #     for symbol in word:
-    #         full = self.epsilon_reachable(current_states)
-    #         current_states = self.all_transitions(full, symbol)
-    #     return not set.isdisjoint(current_states, self.final_states)
+    def run(self, word):
+        ordered_eps = {}
+        for q, prior, tag, p in self.epsilon_transitions:
+            val = ordered_eps.get(q, set())
+            ordered_eps[q] = val | {(prior, tag, p)}
+        ordered_eps = {
+            q: [(it[1], it[2]) for it in sorted(trs, key=lambda x: x[0])]
+            for q, trs in ordered_eps.items()
+        }
+
+        mapped_sym = {}
+        for q, s, p in self.symbol_transitions:
+            val = mapped_sym.get((q, s), set())
+            mapped_sym[(q, s)] = val | {p}
+
+        current_states = {self.initial_state}
+        for symbol in word:
+            full = self.epsilon_reachable(ordered_eps, current_states)
+            current_states = self.all_transitions(mapped_sym, full, symbol)
+        full = self.epsilon_reachable(ordered_eps, current_states)
+
+        return self.final_state in full
 
     def epsilon_closure(self, ordered_eps, confs, k):
         confs_prime = deque()
         added_confs = set()
-        stack = deque()
-        for (q, m) in reversed(confs):
-            stack.append((q, m))
+        stack = deque(reversed(confs))
 
         while stack:
+            print(stack)
             (q, m) = stack.pop()
             confs_prime.append((q, m[:]))
             added_confs.add(q)
 
-            for (q, i, t, p) in ordered_eps:
+            for (q_prime, i, t, p) in ordered_eps:
+                if q_prime != q:
+                    continue
+
                 if t is None:
                     pass
                 elif t > 0:
@@ -143,8 +158,9 @@ class TNFA(Generic[E]):
                     m[-t] = None
 
                 if p not in added_confs:
-                    confs_prime.append((p, m[:]))
-                    added_confs.add(p)
+                    stack.append((q, m))
+                    # confs_prime.append((p, m[:]))
+                    # added_confs.add(p)
 
         return deque([
             (q, m)
