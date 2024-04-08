@@ -1,5 +1,7 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, asdict
 from classes import RE, Epsilon, Symbol, Concat, Or, AnyNumberOf, Maybe, Repeat, NamedGroup, NamedGroupReference
+from tnfa import Ast2Tnfa
+from pprint import pprint
 
 
 PIPE = "|"
@@ -251,17 +253,17 @@ class Parser:
 parser = Parser()
 
 if __name__ == "__main__":
-    re = parser.parse("b|(a|%?%){2}?")
+    re = parser.parse("b|((<gg>a)|%?%){2}?<gg>...")
     print(re)
-    tnfa = re.to_nfa()
-    print(tnfa)
-    print(tnfa.run(""))
-    print(tnfa.run("b"))
-    print(tnfa.run("a"))
-    print(tnfa.run("?"))
-    print(tnfa.run("aa"))
-    print(tnfa.run("?a"))
-    print(tnfa.run("a?"))
-    print(tnfa.run("??"))
-    print(tnfa.run("??a"))
-    print(tnfa.run("?a?"))
+    tnfa = Ast2Tnfa().to_nfa(re)
+    pprint(asdict(tnfa), indent=4, width=200)
+    # print(tnfa.run(""))
+    # print(tnfa.run("b"))
+    # print(tnfa.run("a"))
+    # print(tnfa.run("?"))
+    # print(tnfa.run("aa"))
+    # print(tnfa.run("?a"))
+    # print(tnfa.run("a?"))
+    # print(tnfa.run("??"))
+    # print(tnfa.run("??a"))
+    # print(tnfa.run("?a?"))
