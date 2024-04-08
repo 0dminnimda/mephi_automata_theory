@@ -19,89 +19,76 @@ def test_regexes(data):
         test_one_regex(regex, cases)
 
 
-# re = parse("b|((<gg>a)|%?%){2}?<gg>...")
-re = parse("b|(a|%?%){2}?")
-print(re)
-tnfa = ast_to_tnfa(re)
-# pprint(asdict(tnfa), indent=4, width=200)
-assert tnfa.run("")
-assert tnfa.run("b")
-assert not tnfa.run("a")
-assert not tnfa.run("?")
-assert tnfa.run("aa")
-assert tnfa.run("?a")
-assert tnfa.run("a?")
-assert tnfa.run("??")
-assert not tnfa.run("??a")
-assert not tnfa.run("?a?")
-assert not tnfa.run("sdfsd")
+data = {
+    "b|(a|%?%){2}?": [
+        ("", True),
+        ("b", True),
+        ("a", False),
+        ("?", False),
+        ("aa", True),
+        ("?a", True),
+        ("a?", True),
+        ("??", True),
+        ("??a", False),
+        ("?a?", False),
+        ("sdfsd", False),
+    ],
+    "(a)": {
+        ("", False),
+        ("a", True),
+        ("b", False),
+        ("ba", False),
+        ("ab", False),
+    },
+    "(abc)": {
+        ("", False),
+        ("a", False),
+        ("b", False),
+        ("ba", False),
+        ("ab", False),
+        ("abc", True),
+        ("abcd", False),
+    },
+    "(<gg>a)": {
+        ("", False),
+        ("a", True),
+        ("b", False),
+        ("ba", False),
+        ("ab", False),
+    },
+    "(<gg>a){2}": {
+        ("", False),
+        ("a", False),
+        ("b", False),
+        ("ba", False),
+        ("ab", False),
+        ("aa", True),
+        ("bb", False),
+        ("baa", False),
+        ("aba", False),
+        ("aaa", False),
+        ("bba", False),
+        ("bab", False),
+        ("abb", False),
+        ("aab", False),
+        ("bbb", False),
+    },
+    "b|((<gg>a)|%?%){2}?": {
+        ("", True),
+        ("b", True),
+        ("a", False),
+        ("?", False),
+        ("aa", True),
+        ("?a", True),
+        ("a?", True),
+        ("??", True),
+        ("??a", False),
+        ("?a?", False),
+        ("sdfsd", False),
+    }
+}
 
-re = parse("(a)")
-print(re)
-tnfa = ast_to_tnfa(re)
-# pprint(asdict(tnfa), indent=4, width=200)
-assert not tnfa.run("")
-assert tnfa.run("a")
-assert not tnfa.run("b")
-assert not tnfa.run("ba")
-assert not tnfa.run("ab")
 
-re = parse("(abc)")
-print(re)
-tnfa = ast_to_tnfa(re)
-# pprint(asdict(tnfa), indent=4, width=200)
-assert not tnfa.run("")
-assert not tnfa.run("a")
-assert not tnfa.run("b")
-assert not tnfa.run("c")
-assert not tnfa.run("ab")
-assert tnfa.run("abc")
-assert not tnfa.run("abcd")
-
-re = parse("(<gg>a)")
-print(re)
-tnfa = ast_to_tnfa(re)
-# pprint(asdict(tnfa), indent=4, width=200)
-assert not tnfa.run("")
-assert tnfa.run("a")
-assert not tnfa.run("b")
-assert not tnfa.run("ba")
-assert not tnfa.run("ab")
-
-re = parse("(<gg>a){2}")
-print(re)
-tnfa = ast_to_tnfa(re)
-# pprint(asdict(tnfa), indent=4, width=200)
-assert not tnfa.run("")
-assert not tnfa.run("a")
-assert not tnfa.run("b")
-assert not tnfa.run("ba")
-assert not tnfa.run("ab")
-assert tnfa.run("aa")
-assert not tnfa.run("bb")
-assert not tnfa.run("baa")
-assert not tnfa.run("aba")
-assert not tnfa.run("aaa")
-assert not tnfa.run("bba")
-assert not tnfa.run("bab")
-assert not tnfa.run("abb")
-assert not tnfa.run("aab")
-assert not tnfa.run("bbb")
-
-re = parse("b|((<gg>a)|%?%){2}?")
-print(re)
-tnfa = ast_to_tnfa(re)
-# pprint(asdict(tnfa), indent=4, width=200)
-assert tnfa.run("")
-assert tnfa.run("b")
-assert not tnfa.run("a")
-assert not tnfa.run("?")
-assert tnfa.run("aa")
-assert tnfa.run("?a")
-assert tnfa.run("a?")
-assert tnfa.run("??")
-assert not tnfa.run("??a")
-assert not tnfa.run("?a?")
-assert not tnfa.run("sdfsd")
-
-print("SUCCESS!!")
+if __name__ == "__main__":
+    test_regexes(data)
+    print("SUCCESS!!")
