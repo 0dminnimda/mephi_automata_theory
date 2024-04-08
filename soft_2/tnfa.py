@@ -28,7 +28,7 @@ def union_dict(it):
 
 class SymbolTransition(NamedTuple, Generic[E]):
     source: State
-    sumbol: E
+    symbol: E
     target: State
 
 
@@ -290,9 +290,10 @@ class Ast2Tnfa(Visitor):
 
     def visit_Concat(self, node: ast.Concat, state: State):
         tnfas = []
-        for expr in node.expressions:
+        for expr in node.expressions[::-1]:
             tnfas.append(self.visit(expr, state))
             state = tnfas[-1].initial_state
+        tnfas = tnfas[::-1]
 
         assert len(tnfas) > 0, "'concatenation' must have at least one expressions"
 
@@ -439,9 +440,12 @@ class Ast2Tnfa(Visitor):
         assert False, "'repeat' did not match any case"
 
     def visit_NamedGroup(self, node: ast.NamedGroup, state: State):
-        start_tag = self.get_next_tag()
-        end_tag = self.get_next_tag()
-        self.named_groups_to_tags[node.name] = (start_tag, end_tag)
+        if node.name not in self.named_groups_to_tags:
+            start_tag = self.get_next_tag()
+            end_tag = self.get_next_tag()
+            self.named_groups_to_tags[node.name] = (start_tag, end_tag)
+        else:
+            (start_tag, end_tag) = self.named_groups_to_tags[node.name]
 
         return self.visit(
             ast.Concat((ast.Tag(start_tag), node.expr, ast.Tag(end_tag))), state
