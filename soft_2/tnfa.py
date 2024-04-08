@@ -113,6 +113,7 @@ class TNFA(Generic[E]):
         return result
 
     def run(self, word):
+        # print(repr(word))
         ordered_eps = {}
         for q, prior, tag, p in self.epsilon_transitions:
             val = ordered_eps.get(q, set())
@@ -128,10 +129,14 @@ class TNFA(Generic[E]):
             mapped_sym[(q, s)] = val | {p}
 
         current_states = {self.initial_state}
+        # print(current_states)
         for symbol in word:
             full = self.epsilon_reachable(ordered_eps, current_states)
+            # print(full)
             current_states = self.all_transitions(mapped_sym, full, symbol)
+            # print(current_states)
         full = self.epsilon_reachable(ordered_eps, current_states)
+        # print(full)
 
         return self.final_state in full
 
