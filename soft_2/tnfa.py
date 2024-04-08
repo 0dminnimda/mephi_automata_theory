@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import string
+import classes as ast
 from dataclasses import dataclass, field
 from typing import TypeVar, Generic, Sequence, NamedTuple
 from collections import deque
@@ -71,9 +73,9 @@ class TNFA(Generic[E]):
             mapped_sym[(q, s)] = val | {p}
         return mapped_sym
 
-    def get_ordered_mapped_epsilon_transitions(self) -> dict[
-        State, list[tuple[Tag | None, State]]
-    ]:
+    def get_ordered_mapped_epsilon_transitions(
+        self,
+    ) -> dict[State, list[tuple[Tag | None, State]]]:
         ordered_eps = {}
         for q, prior, tag, p in self.epsilon_transitions:
             val = ordered_eps.get(q, set())
@@ -124,7 +126,7 @@ class TNFA(Generic[E]):
             confs_prime.append((q, m[:]))
             added_confs.add(q)
 
-            for (q_prime, i, t, p) in ordered_eps:
+            for q_prime, i, t, p in ordered_eps:
                 if q_prime != q:
                     continue
 
@@ -140,18 +142,19 @@ class TNFA(Generic[E]):
                     # confs_prime.append((p, m[:]))
                     # added_confs.add(p)
 
-        return deque([
-            (q, m)
-            for (q, m) in confs_prime
-            if q == self.final_state or any(q == qq for qq, _, _ in self.symbol_transitions)
-        ])
+        return deque(
+            [
+                (q, m)
+                for (q, m) in confs_prime
+                if q == self.final_state
+                or any(q == qq for qq, _, _ in self.symbol_transitions)
+            ]
+        )
 
     def step_on_symbol(self, mapped_sym, confs, char):
-        return deque([
-            (p, m)
-            for q, m in confs
-            for p in mapped_sym.get((q, char), set())
-        ])
+        return deque(
+            [(p, m) for q, m in confs for p in mapped_sym.get((q, char), set())]
+        )
 
     def simulation(self, word: str):
         print(repr(word))
@@ -159,7 +162,7 @@ class TNFA(Generic[E]):
         ordered_eps = self.get_ordered_mapped_epsilon_transitions()
         mapped_sym = self.get_mapped_symbol_transitions()
 
-        offsets = [None]*(max(self.tags)+1)
+        offsets = [None] * (max(self.tags) + 1)
         confs = deque([(self.initial_state, offsets)])
         print(confs)
 
@@ -180,9 +183,6 @@ class TNFA(Generic[E]):
             return False
 
 
-import classes as ast
-
-
 @dataclass
 class Visitor:
     def visit(self, node, *args, **kwargs):
@@ -193,9 +193,6 @@ class Visitor:
                 f"visit method for node '{type(node).__name__}' is not implemented"
             )
         return visitor(node, *args, **kwargs)
-
-
-import string
 
 
 ALPHABET = set(string.printable)
@@ -450,4 +447,3 @@ _ast2tnfa = Ast2Tnfa()
 
 def ast_to_tnfa(node: ast.RE) -> TNFA:
     return _ast2tnfa.to_nfa(node)
-
