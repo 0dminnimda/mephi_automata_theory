@@ -73,6 +73,13 @@ class TNFA(Generic[E]):
             mapped_sym[(q, s)] = val | {p}
         return mapped_sym
 
+    def get_double_mapped_symbol_transitions(self) -> dict[State, dict[E, State]]:
+        mapped_sym = {}
+        for q, s, p in self.symbol_transitions:
+            val = mapped_sym[q] = mapped_sym.get(q, dict())
+            val[s] = p
+        return mapped_sym
+
     def get_ordered_mapped_epsilon_transitions(
         self,
     ) -> dict[State, list[tuple[Tag | None, State]]]:
@@ -87,7 +94,8 @@ class TNFA(Generic[E]):
         return ordered_eps
 
     def all_transitions(self, mapped_sym, states, symbol):
-        return union_set(mapped_sym.get((q, symbol), set()) for q in states)
+        syms = (mapped_sym.get(q, dict()).get(symbol) for q in states)
+        return {it for it in syms if it is not None}
 
     def epsilon_reachable(self, ordered_eps, states: set[State]) -> set[State]:
         stack = deque(states)
@@ -105,7 +113,7 @@ class TNFA(Generic[E]):
 
     def run(self, word):
         ordered_eps = self.get_ordered_mapped_epsilon_transitions()
-        mapped_sym = self.get_mapped_symbol_transitions()
+        mapped_sym = self.get_double_mapped_symbol_transitions()
 
         current_states = {self.initial_state}
         for symbol in word:
@@ -160,7 +168,7 @@ class TNFA(Generic[E]):
         print(repr(word))
 
         ordered_eps = self.get_ordered_mapped_epsilon_transitions()
-        mapped_sym = self.get_mapped_symbol_transitions()
+        mapped_sym = self.get_double_mapped_symbol_transitions()
 
         offsets = [None] * (max(self.tags) + 1)
         confs = deque([(self.initial_state, offsets)])
