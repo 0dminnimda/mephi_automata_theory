@@ -207,6 +207,7 @@ class Ast2Tnfa(Visitor):
     next_state: State = 0
     next_tag: Tag = 0
     named_groups_to_tags: dict[str, tuple[Tag, Tag]] = field(default_factory=dict)
+    found_named_groups: set[str] = field(default_factory=set)
 
     def get_next_state(self):
         self.next_state += 1
@@ -417,13 +418,18 @@ class Ast2Tnfa(Visitor):
 
         assert False, "'repeat' did not match any case"
 
+    def get_named_group_tags(self, name: str):
+        if name in self.named_groups_to_tags:
+            return self.named_groups_to_tags[name]
+
+        start_tag = self.get_next_tag()
+        end_tag = self.get_next_tag()
+        self.named_groups_to_tags[name] = (start_tag, end_tag)
+        return start_tag, end_tag
+
     def visit_NamedGroup(self, node: ast.NamedGroup, state: State):
-        if node.name not in self.named_groups_to_tags:
-            start_tag = self.get_next_tag()
-            end_tag = self.get_next_tag()
-            self.named_groups_to_tags[node.name] = (start_tag, end_tag)
-        else:
-            (start_tag, end_tag) = self.named_groups_to_tags[node.name]
+        (start_tag, end_tag) = self.get_named_group_tags(node.name)
+        self.found_named_groups.add(node.name)
 
         return self.visit(
             ast.Concat((ast.Tag(start_tag), node.expr, ast.Tag(end_tag))), state
@@ -431,7 +437,7 @@ class Ast2Tnfa(Visitor):
 
     def visit_NamedGroupReference(self, node: ast.NamedGroupReference, state: State):
         state2 = self.get_next_state()
-        (start_tag, end_tag) = self.named_groups_to_tags[node.name]
+        (start_tag, end_tag) = self.get_named_group_tags(node.name)
         sym = NamedGroupReference(node.name, start_tag, end_tag)
         return TNFA(
             ALPHABET | {sym},
