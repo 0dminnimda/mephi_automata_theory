@@ -1,5 +1,7 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, asdict
 from classes import RE, Epsilon, Symbol, Concat, Or, AnyNumberOf, Maybe, Repeat, NamedGroup, NamedGroupReference
+from tnfa import Ast2Tnfa
+from pprint import pprint
 
 
 PIPE = "|"
@@ -248,20 +250,8 @@ class Parser:
         return int(self.string[pos : self.position])
 
 
-parser = Parser()
+_parser = Parser()
 
-if __name__ == "__main__":
-    re = parser.parse("b|(a|%?%){2}?")
-    print(re)
-    nfa = re.to_nfa()
-    print(nfa)
-    assert nfa.run("")
-    assert nfa.run("b")
-    assert not nfa.run("a")
-    assert not nfa.run("?")
-    assert nfa.run("aa")
-    assert nfa.run("?a")
-    assert nfa.run("a?")
-    assert nfa.run("??")
-    assert not nfa.run("??a")
-    assert not nfa.run("?a?")
+
+def parse(string: str) -> RE:
+    return _parser.parse(string)
