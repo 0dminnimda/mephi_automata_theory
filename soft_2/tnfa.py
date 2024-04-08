@@ -464,3 +464,11 @@ class Ast2Tnfa(Visitor):
             {SymbolTransition(state2, sym, state)},
             set(),
         )
+
+
+_ast2tnfa = Ast2Tnfa()
+
+
+def ast_to_tnfa(node: ast.RE) -> TNFA:
+    return _ast2tnfa.to_nfa(node)
+

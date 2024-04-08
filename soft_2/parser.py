@@ -250,24 +250,8 @@ class Parser:
         return int(self.string[pos : self.position])
 
 
-parser = Parser()
+_parser = Parser()
 
-if __name__ == "__main__":
-    # re = parser.parse("b|((<gg>a)|%?%){2}?<gg>...")
-    # re = parser.parse("b|((<gg>a)|%?%){2}?")
-    re = parser.parse("b|(a|%?%){2}?")
-    print(re)
-    tnfa = Ast2Tnfa().to_nfa(re)
-    pprint(asdict(tnfa), indent=4, width=200)
-    assert tnfa.run("")
-    assert tnfa.run("b")
-    assert not tnfa.run("a")
-    assert not tnfa.run("?")
-    assert tnfa.run("aa")
-    assert tnfa.run("?a")
-    assert tnfa.run("a?")
-    assert tnfa.run("??")
-    assert not tnfa.run("??a")
-    assert not tnfa.run("?a?")
-    assert not tnfa.run("sdfsd")
-    print("SUCCESS!!")
+
+def parse(string: str) -> RE:
+    return _parser.parse(string)
