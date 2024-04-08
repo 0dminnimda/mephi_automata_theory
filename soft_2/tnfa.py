@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from typing import TypeVar, Generic, Sequence, Iterable, NamedTuple
+from collections import deque
 
 
 State = int
@@ -94,11 +95,6 @@ class TNFA(Generic[E]):
     #         current_tag += max(tnfa.tags) + 1
     #         tnfa.shift_states_and_tags(current_state_save, current_tag_save)
 
-    def add_state(self):
-        state = max(self.states) + 1
-        self.states.add(state)
-        return state
-
     # def transitions_into(self, state, symbol):
     #     return self.transitions.get((state, symbol), set())
 
@@ -125,6 +121,72 @@ class TNFA(Generic[E]):
     #         full = self.epsilon_reachable(current_states)
     #         current_states = self.all_transitions(full, symbol)
     #     return not set.isdisjoint(current_states, self.final_states)
+
+    def epsilon_closure(self, ordered_eps, confs, k):
+        confs_prime = deque()
+        added_confs = set()
+        stack = deque()
+        for (q, m) in reversed(confs):
+            stack.append((q, m))
+
+        while stack:
+            (q, m) = stack.pop()
+            confs_prime.append((q, m[:]))
+            added_confs.add(q)
+
+            for (q, i, t, p) in ordered_eps:
+                if t is None:
+                    pass
+                elif t > 0:
+                    m[t] = k
+                else:
+                    m[-t] = None
+
+                if p not in added_confs:
+                    confs_prime.append((p, m[:]))
+                    added_confs.add(p)
+
+        return deque([
+            (q, m)
+            for (q, m) in confs_prime
+            if q == self.final_state or any(q == qq for qq, _, _ in self.symbol_transitions)
+        ])
+
+    def step_on_symbol(self, mapped_sym, confs, char):
+        return deque([
+            (p, m)
+            for q, m in confs
+            for p in mapped_sym.get((q, char), set())
+        ])
+
+    def simulation(self, word: str):
+        print(repr(word))
+
+        ordered_eps = sorted(self.epsilon_transitions, key=lambda x: x.priority)
+        mapped_sym = {}
+        for q, s, p in self.symbol_transitions:
+            val = mapped_sym.get((q, s), set())
+            mapped_sym[(q, s)] = val | {p}
+
+        offsets = [None]*(max(self.tags)+1)
+        confs = deque([(self.initial_state, offsets)])
+        print(confs)
+
+        for k, char in enumerate(word):
+            confs = self.epsilon_closure(ordered_eps, confs, k)
+            print(confs)
+            confs = self.step_on_symbol(mapped_sym, confs, char)
+            print(confs)
+            if not confs:
+                return False
+
+        confs = self.epsilon_closure(ordered_eps, confs, len(word))
+        print(confs)
+
+        if any(q == self.final_state for q, m in confs):
+            return True
+        else:
+            return False
 
 
 import classes as ast
