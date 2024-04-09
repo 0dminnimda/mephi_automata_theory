@@ -58,8 +58,8 @@ class Configuration:
 
 
 def determinization(tnfa: TNFA):
-    state = set()
-    final_state = set()
+    states = set()
+    final_states = set()
     phi = []
 
     ordered_eps = tnfa.get_ordered_mapped_epsilon_transitions()
@@ -70,8 +70,9 @@ def determinization(tnfa: TNFA):
 
     tdfa_state = 0
     configurations = epsilon_closure(ordered_eps, tdfa_state, [Configuration(tnfa.initial_state, r0, dict(), dict())])
-    print("g", *configurations, "g", sep="\n")
+    # print("g", *configurations, "g", sep="\n")
     # precedences = precedence(configurations)
+    # add_state(states, final_states, fianl_registers, phi, configurations)
 
 
 def epsilon_closure(ordered_eps: OrdMapEpsTrans, tdfa_state: State, confs: list[Configuration]) -> list[Configuration]:
