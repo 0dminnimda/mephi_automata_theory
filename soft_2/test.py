@@ -150,14 +150,13 @@ def test_dfa0():
 
 
 def test_dfa1():
-    # a((<g1>a)*|(<g2>b)*)b
+    # ((<g1>a)*|(<g2>b)*)b?
     re = ast.Concat((
-        ast.Symbol("a"),
         ast.Or((
             ast.AnyNumberOf(ast.NamedGroup("g1", ast.Symbol("a"))),
             ast.AnyNumberOf(ast.NamedGroup("g2", ast.Symbol("b"))),
         )),
-        ast.Symbol("b"),
+        ast.Maybe(ast.Symbol("b")),
     ))
     tnfa = ast_to_tnfa(re)
     pprint(asdict(tnfa, exclude={"alphabet"}), indent=4, width=200)
