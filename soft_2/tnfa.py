@@ -48,6 +48,10 @@ class NamedGroupReference:
     end_tag: Tag
 
 
+OrdMapEpsTrans = dict[State, list[tuple[Tag | None, State]]]
+DblMapSymTrans = dict[State, dict[E, State]]
+
+
 @dataclass
 class TNFA(Generic[E]):
     """
@@ -73,16 +77,14 @@ class TNFA(Generic[E]):
             mapped_sym[(q, s)] = val | {p}
         return mapped_sym
 
-    def get_double_mapped_symbol_transitions(self) -> dict[State, dict[E, State]]:
+    def get_double_mapped_symbol_transitions(self) -> DblMapSymTrans:
         mapped_sym = {}
         for q, s, p in self.symbol_transitions:
             val = mapped_sym[q] = mapped_sym.get(q, dict())
             val[s] = p
         return mapped_sym
 
-    def get_ordered_mapped_epsilon_transitions(
-        self,
-    ) -> dict[State, list[tuple[Tag | None, State]]]:
+    def get_ordered_mapped_epsilon_transitions(self) -> OrdMapEpsTrans:
         ordered_eps = {}
         for q, prior, tag, p in self.epsilon_transitions:
             val = ordered_eps.get(q, set())
@@ -349,11 +351,14 @@ class Ast2Tnfa(Visitor):
     def visit_AnyNumberOf(self, node: ast.AnyNumberOf, state: State):
         return self.repeat_expr(node.expr, 0, None, state)
 
+    def visit_OneOrMoreOf(self, node: ast.OneOrMoreOf, state: State):
+        return self.repeat_expr(node.expr, 1, None, state)
+
     def visit_Maybe(self, node: ast.Maybe, state: State):
         return self.repeat_expr(node.expr, 0, 1, state)
 
     def visit_Repeat(self, node: ast.Repeat, state: State):
-        return self.repeat_expr(node.expr, node.count, node.count, state)
+        return self.repeat_expr(node.expr, node.min, node.max, state)
 
     def repeat_expr(self, node: ast.RE, min: int, max: int | None, state: State):
         assert min >= 0, "'repeat' min must be non-negative"

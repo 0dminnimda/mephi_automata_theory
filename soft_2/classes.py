@@ -32,6 +32,11 @@ class AnyNumberOf(RE):
 
 
 @dataclass(frozen=True)
+class OneOrMoreOf(RE):
+    expr: RE
+
+
+@dataclass(frozen=True)
 class Maybe(RE):
     expr: RE
 
@@ -39,7 +44,8 @@ class Maybe(RE):
 @dataclass(frozen=True)
 class Repeat(RE):
     expr: RE
-    count: int
+    min: int
+    max: int
 
 
 @dataclass(frozen=True)

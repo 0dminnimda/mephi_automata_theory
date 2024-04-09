@@ -146,7 +146,7 @@ class Parser:
                     raise ValueError(f"Expected number at position {self.position}")
                 if not self.match_and_consume(CLOSE_CURLY_BRACKET):
                     raise ValueError(f"Expected '}}' at position {self.position}")
-                expr = Repeat(expr, count)
+                expr = Repeat(expr, count, count)
             else:
                 break
 
