@@ -149,6 +149,27 @@ def test_dfa():
     tdfa.determinization(tnfa)
 
 
+def test_dfa2():
+    # a*<tag>b*|ab
+    re = ast.Or((
+        ast.Concat((
+            ast.AnyNumberOf(ast.Symbol("a")),
+            ast.Tag(100),
+            ast.AnyNumberOf(ast.Symbol("b")),
+        )),
+        ast.Concat((
+            ast.Symbol("a"),
+            ast.Symbol("b"),
+        )),
+    ))
+    tnfa = ast_to_tnfa(re)
+    pprint(asdict(tnfa, exclude={"alphabet"}), indent=4, width=200)
+    # tnfa.to_dot_image("tnfa.dot")
+    tnfa.dump_dot("tnfa2.dot")
+    tdfa.determinization(tnfa)
+
+
 if __name__ == "__main__":
     test_dfa()
+    test_dfa2()
     test_regexes(data)
