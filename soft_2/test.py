@@ -2,6 +2,8 @@ from parser import parse
 from dataclasses import asdict
 from pprint import pprint
 from tnfa import ast_to_tnfa
+import classes as ast
+from pathlib import Path
 
 
 _reported = []
@@ -122,5 +124,22 @@ data = {
 }
 
 
+def test_dfa():
+    # (<g1>a)*(<g2>a|<tag4>b)b*
+    re = ast.Concat((
+        ast.AnyNumberOf(ast.NamedGroup("g1", ast.Symbol("a"))),
+        ast.NamedGroup("g2", ast.Or((
+            ast.Symbol("a"),
+            ast.Concat((ast.Tag(100), ast.Symbol("b"))),
+        ))),
+        ast.AnyNumberOf(ast.Symbol("b")),
+    ))
+    tnfa = ast_to_tnfa(re)
+    pprint(asdict(tnfa), indent=4, width=200)
+    # tnfa.to_dot_image("tnfa.dot")
+    tnfa.dump_dot("tnfa.dot")
+
+
 if __name__ == "__main__":
+    test_dfa()
     test_regexes(data)
