@@ -378,7 +378,7 @@ class Ast2Tnfa(Visitor):
         assert len(node.expressions) > 0, "'or' must have at least one expressions"
 
         prev = self.visit(node.expressions[-1], state)
-        for expr in node.expressions[:-1]:
+        for expr in node.expressions[:-1][::-1]:
             prev = self.or_with_two(expr, prev)
 
         return prev
