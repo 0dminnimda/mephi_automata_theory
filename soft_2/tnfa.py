@@ -8,6 +8,8 @@ from collections import deque
 from pathlib import Path
 import os
 
+from copy import deepcopy
+
 
 State = int
 Tag = int
@@ -55,6 +57,25 @@ DblMapSymTrans = dict[State, dict[E, State]]
 
 
 @dataclass
+class Configuration:
+    """
+    Class for simulation of TNFA
+    """
+
+    state: State
+    tags: dict[Tag, State | None]
+
+    def set_tag(self, tag: Tag | None, value: int):
+        if tag is None:
+            return
+
+        if tag > 0:
+            self.tags[tag] = value
+        else:
+            self.tags[-tag] = -1
+
+
+@dataclass
 class TNFA(Generic[E]):
     """
     Tagged Non-deterministic Finite Automaton
@@ -75,22 +96,26 @@ class TNFA(Generic[E]):
     def dumps_dot(self) -> str:
         result = []
         result.append("digraph G {\n")
-        result.append("node [label=\"\", shape=circle, style=filled];\n\n")
+        result.append('node [label="", shape=circle, style=filled];\n\n')
 
         for state in self.states:
             if state == self.initial_state:
-                result.append(f"n{state} [label=\"{state}\", shape=doublecircle];\n")
+                result.append(f'n{state} [label="{state}", shape=doublecircle];\n')
             elif state == self.final_state:
-                result.append(f"n{state} [label=\"{state}\", shape=doublecircle];\n")
+                result.append(f'n{state} [label="{state}", shape=doublecircle];\n')
             else:
-                result.append(f"n{state} [label=\"{state}\"];\n")
+                result.append(f'n{state} [label="{state}"];\n')
 
         for source, priority, tag, target in self.epsilon_transitions:
             tag = "ε" if tag is None else tag
-            result.append(f"n{source} -> n{target} [label=\"{priority}/{tag}\"];\n")  # , color=blue
+            result.append(
+                f'n{source} -> n{target} [label="{priority}/{tag}"];\n'
+            )  # , color=blue
 
         for source, symbol, target in self.symbol_transitions:
-            result.append(f"n{source} -> n{target} [label=\"{symbol}\"];\n")  # , color=blue
+            result.append(
+                f'n{source} -> n{target} [label="{symbol}"];\n'
+            )  # , color=blue
 
         result.append("}\n")
 
@@ -160,72 +185,62 @@ class TNFA(Generic[E]):
 
         return self.final_state in full
 
-    def epsilon_closure(self, ordered_eps, confs, k):
-        confs_prime = deque()
-        added_confs = set()
-        stack = deque(reversed(confs))
+    def epsilon_closure(
+        self, ordered_eps: OrdMapEpsTrans, confs: deque[Configuration], index: int
+    ) -> deque[Configuration]:
+        stack: deque[Configuration] = deque(confs)
+        enqueued: set[State] = {it.state for it in stack}
+        result: deque[Configuration] = deque()
 
         while stack:
-            print(stack)
-            (q, m) = stack.pop()
-            confs_prime.append((q, m[:]))
-            added_confs.add(q)
+            conf = stack.pop()
 
-            for q_prime, i, t, p in ordered_eps:
-                if q_prime != q:
-                    continue
+            tag_state_list = ordered_eps.get(conf.state, [])
+            # print(conf, tag_state_list)
+            for tag, next_state in tag_state_list:
+                if next_state not in enqueued:
+                    next_conf = deepcopy(conf)
+                    next_conf.state = next_state
+                    next_conf.set_tag(tag, index)
+                    stack.append(next_conf)
+                    enqueued.add(next_state)
 
-                if t is None:
-                    pass
-                elif t > 0:
-                    m[t] = k
-                else:
-                    m[-t] = None
+            if not tag_state_list:
+                result.append(conf)
 
-                if p not in added_confs:
-                    stack.append((q, m))
-                    # confs_prime.append((p, m[:]))
-                    # added_confs.add(p)
+        return result
 
+    def step_on_symbol(
+        self, mapped_sym: DblMapSymTrans, confs: deque[Configuration], char: str
+    ) -> deque[Configuration]:
+        pairs = ((conf, mapped_sym.get(conf.state, dict()).get(char)) for conf in confs)
         return deque(
             [
-                (q, m)
-                for (q, m) in confs_prime
-                if q == self.final_state
-                or any(q == qq for qq, _, _ in self.symbol_transitions)
+                Configuration(state, conf.tags)
+                for conf, state in pairs
+                if state is not None
             ]
         )
 
-    def step_on_symbol(self, mapped_sym, confs, char):
-        return deque(
-            [(p, m) for q, m in confs for p in mapped_sym.get((q, char), set())]
-        )
-
     def simulation(self, word: str):
-        print(repr(word))
-
         ordered_eps = self.get_ordered_mapped_epsilon_transitions()
         mapped_sym = self.get_double_mapped_symbol_transitions()
 
-        offsets = [None] * (max(self.tags) + 1)
-        confs = deque([(self.initial_state, offsets)])
-        print(confs)
+        confs = deque([Configuration(self.initial_state, dict())])
 
         for k, char in enumerate(word):
             confs = self.epsilon_closure(ordered_eps, confs, k)
-            print(confs)
             confs = self.step_on_symbol(mapped_sym, confs, char)
-            print(confs)
             if not confs:
                 return False
 
         confs = self.epsilon_closure(ordered_eps, confs, len(word))
+        if not any(conf.state == self.final_state for conf in confs):
+            return False
+
         print(confs)
 
-        if any(q == self.final_state for q, m in confs):
-            return True
-        else:
-            return False
+        return True
 
 
 @dataclass
