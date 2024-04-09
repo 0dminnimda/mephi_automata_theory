@@ -18,14 +18,17 @@ def asdict(obj, exclude=None):
 
 
 def test_one_regex(regex, cases):
+    print(regex)
     re = parse(regex)
     # print(re)
     tnfa = ast_to_tnfa(re)
+    # tnfa.dump_dot("tnfa_k.dot")
+    simulatable = tnfa.as_simulatable()
     # pprint(asdict(tnfa, exclude={"alphabet"}), indent=4, width=200)
     for prompt, should_match in cases:
         if tnfa.run(prompt) != should_match:
             _reported.append(f"{prompt!r} should {'not'if not should_match else ''} match {regex!r} in run")
-        if tnfa.simulation(prompt) != should_match:
+        if simulatable.simulate(prompt) != should_match:
             _reported.append(f"{prompt!r} should {'not'if not should_match else ''} match {regex!r} in simulation")
 
 

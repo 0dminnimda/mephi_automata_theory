@@ -57,25 +57,6 @@ DblMapSymTrans = dict[State, dict[E, State]]
 
 
 @dataclass
-class Configuration:
-    """
-    Class for simulation of TNFA
-    """
-
-    state: State
-    tags: dict[Tag, State | None]
-
-    def set_tag(self, tag: Tag | None, value: int):
-        if tag is None:
-            return
-
-        if tag > 0:
-            self.tags[tag] = value
-        else:
-            self.tags[-tag] = -1
-
-
-@dataclass
 class TNFA(Generic[E]):
     """
     Tagged Non-deterministic Finite Automaton
@@ -91,7 +72,7 @@ class TNFA(Generic[E]):
         EpsilonTransition
     ]  # ∆ - optionally tagged ϵ-transitions with priority
 
-    named_groups_to_tags: dict[str, Tag] = field(default_factory=dict)
+    named_groups_to_tags: dict[str, tuple[Tag, Tag]] = field(default_factory=dict)
 
     def dumps_dot(self) -> str:
         result = []
@@ -173,7 +154,7 @@ class TNFA(Generic[E]):
 
         return result
 
-    def run(self, word):
+    def run(self, word: str):
         ordered_eps = self.get_ordered_mapped_epsilon_transitions()
         mapped_sym = self.get_double_mapped_symbol_transitions()
 
@@ -185,60 +166,110 @@ class TNFA(Generic[E]):
 
         return self.final_state in full
 
-    def epsilon_closure(
-        self, ordered_eps: OrdMapEpsTrans, confs: deque[Configuration], index: int
-    ) -> deque[Configuration]:
-        stack: deque[Configuration] = deque(confs)
-        enqueued: set[State] = {it.state for it in stack}
-        result: deque[Configuration] = deque()
+    def as_simulatable(self):
+        return SimulatableTNFA(
+            self.get_ordered_mapped_epsilon_transitions(),
+            self.get_double_mapped_symbol_transitions(),
+            self.initial_state,
+            self.final_state,
+            self.named_groups_to_tags,
+            dict(),
+        )
+
+
+SimTags = dict[Tag, int | None]
+SimConfs = dict[State, SimTags]
+
+
+@dataclass
+class SimulatableTNFA(Generic[E]):
+    ordered_eps: OrdMapEpsTrans
+    mapped_sym: DblMapSymTrans
+    initial_state: State
+    final_state: State
+    named_groups_to_tags: dict[str, tuple[Tag, Tag]]
+    confs: SimConfs
+
+    @staticmethod
+    def set_tag(registers: SimTags, tag: Tag | None, value: int):
+        if tag is None:
+            return
+
+        if tag > 0:
+            registers[tag] = value
+        else:
+            registers[-tag] = -1
+
+    def epsilon_closure(self, index: int) -> SimConf:
+        stack = deque(self.confs.items())
+        enqueued = set(self.confs.keys())
+        result = SimConfs()
 
         while stack:
             conf = stack.pop()
 
-            tag_state_list = ordered_eps.get(conf.state, [])
+            tag_state_list = self.ordered_eps.get(conf[0], [])
             # print(conf, tag_state_list)
             for tag, next_state in tag_state_list:
                 if next_state not in enqueued:
-                    next_conf = deepcopy(conf)
-                    next_conf.state = next_state
-                    next_conf.set_tag(tag, index)
-                    stack.append(next_conf)
+                    next_registers = deepcopy(conf[1])
+                    self.set_tag(next_registers, tag, index)
+                    stack.append((next_state, next_registers))
                     enqueued.add(next_state)
 
             if not tag_state_list:
-                result.append(conf)
+                result[conf[0]] = conf[1]
 
         return result
 
-    def step_on_symbol(
-        self, mapped_sym: DblMapSymTrans, confs: deque[Configuration], char: str
-    ) -> deque[Configuration]:
-        pairs = ((conf, mapped_sym.get(conf.state, dict()).get(char)) for conf in confs)
-        return deque(
-            [
-                Configuration(state, conf.tags)
-                for conf, state in pairs
-                if state is not None
-            ]
-        )
+    def step_on_symbol(self, symbol: str) -> SimConf:
+        result = SimConfs()
+        for conf in self.confs.items():
+            state = self.mapped_sym.get(conf[0], dict()).get(symbol)
+            if state is not None:
+                result[state] = conf[1]
+        return result
 
-    def simulation(self, word: str):
-        ordered_eps = self.get_ordered_mapped_epsilon_transitions()
-        mapped_sym = self.get_double_mapped_symbol_transitions()
+    def simulate(self, word: str):
+        self.confs = {self.initial_state: dict()}
 
-        confs = deque([Configuration(self.initial_state, dict())])
-
-        for k, char in enumerate(word):
-            confs = self.epsilon_closure(ordered_eps, confs, k)
-            confs = self.step_on_symbol(mapped_sym, confs, char)
-            if not confs:
+        for ind, symbol in enumerate(word):
+            self.confs = self.epsilon_closure(ind)
+            self.confs = self.step_on_symbol(symbol)
+            if not self.confs:
                 return False
 
-        confs = self.epsilon_closure(ordered_eps, confs, len(word))
-        if not any(conf.state == self.final_state for conf in confs):
+        self.confs = self.epsilon_closure(len(word))
+        if not any(state == self.final_state for state in self.confs):
             return False
 
-        print(repr(word), confs)
+        # match_ids = deque()
+        # matches = dict()
+        # if self.confs:
+            # values = iter(self.confs.values())
+            # registers = next(values)
+            # for conf in values:
+            #     assert conf == registers, f"different end registers {conf} != {registers} {word!r} {self.confs}"
+
+        prev_match_ids = None
+        for registers in self.confs.values():
+            match_ids = dict()
+            for name, (start, end) in self.named_groups_to_tags.items():
+                start_id = registers.get(start)
+                end_id = registers.get(end)
+                if start_id is None or end_id is None or start_id < 0 or end_id < 0:
+                    continue
+                match_ids[name] = (start_id, end_id)
+            if prev_match_ids is not None:
+                assert prev_match_ids == match_ids, f"different captures {prev_match_ids} != {match_ids} {word!r} {self.confs}"
+            else:
+                prev_match_ids = match_ids
+
+        matches = dict()
+        if prev_match_ids is not None:
+            for name, (start_id, end_id) in prev_match_ids.items():
+                matches[name] = word[start_id: end_id]
+        print(repr(word), matches, self.confs)
 
         return True
 
