@@ -132,7 +132,7 @@ data = {
 }
 
 
-def test_dfa():
+def test_dfa0():
     # (<g1>a)*(<g2>a|<tag4>b)b*
     re = ast.Concat((
         ast.AnyNumberOf(ast.NamedGroup("g1", ast.Symbol("a"))),
@@ -145,7 +145,24 @@ def test_dfa():
     tnfa = ast_to_tnfa(re)
     pprint(asdict(tnfa, exclude={"alphabet"}), indent=4, width=200)
     # tnfa.to_dot_image("tnfa.dot")
-    tnfa.dump_dot("tnfa.dot")
+    tnfa.dump_dot("tnfa0.dot")
+    tdfa.determinization(tnfa)
+
+
+def test_dfa1():
+    # a((<g1>a)*|(<g2>b)*)b
+    re = ast.Concat((
+        ast.Symbol("a"),
+        ast.Or((
+            ast.AnyNumberOf(ast.NamedGroup("g1", ast.Symbol("a"))),
+            ast.AnyNumberOf(ast.NamedGroup("g2", ast.Symbol("b"))),
+        )),
+        ast.Symbol("b"),
+    ))
+    tnfa = ast_to_tnfa(re)
+    pprint(asdict(tnfa, exclude={"alphabet"}), indent=4, width=200)
+    # tnfa.to_dot_image("tnfa.dot")
+    tnfa.dump_dot("tnfa1.dot")
     tdfa.determinization(tnfa)
 
 
@@ -170,6 +187,7 @@ def test_dfa2():
 
 
 if __name__ == "__main__":
-    test_dfa2()
-    test_dfa()
+    # test_dfa2()
+    # test_dfa0()
+    test_dfa1()
     test_regexes(data)
