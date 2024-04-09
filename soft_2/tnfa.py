@@ -340,7 +340,7 @@ class Ast2Tnfa(Visitor):
     def or_with_two(self, lhs_node: ast.RE, rhs: TNFA, prioritize_lhs: bool = True):
         rhs_prime = self.negative_tags_from(rhs, rhs.final_state)
         lhs: TNFA = self.visit(lhs_node, rhs_prime.initial_state)
-        lhs_prime = self.negative_tags_from(rhs, rhs.initial_state)
+        lhs_prime = self.negative_tags_from(lhs, rhs.initial_state)
 
         tnfas = [lhs, lhs_prime, rhs, rhs_prime]
 
