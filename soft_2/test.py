@@ -4,6 +4,7 @@ from pprint import pprint
 from tnfa import ast_to_tnfa
 import classes as ast
 from pathlib import Path
+import tdfa
 
 
 _reported = []
@@ -145,6 +146,7 @@ def test_dfa():
     pprint(asdict(tnfa, exclude={"alphabet"}), indent=4, width=200)
     # tnfa.to_dot_image("tnfa.dot")
     tnfa.dump_dot("tnfa.dot")
+    tdfa.determinization(tnfa)
 
 
 if __name__ == "__main__":
