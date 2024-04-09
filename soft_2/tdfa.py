@@ -71,7 +71,7 @@ def determinization(tnfa: TNFA):
     tdfa_state = 0
     configurations = epsilon_closure(ordered_eps, tdfa_state, [Configuration(tnfa.initial_state, r0, dict(), dict())])
     print("g", *configurations, "g", sep="\n")
-    # presedances = presedance(configurations)
+    # precedences = precedence(configurations)
 
 
 def epsilon_closure(ordered_eps: OrdMapEpsTrans, tdfa_state: State, confs: list[Configuration]) -> list[Configuration]:
