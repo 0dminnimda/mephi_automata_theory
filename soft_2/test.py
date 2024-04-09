@@ -131,8 +131,8 @@ data = {
         ("?a?", False),
         ("sdfsd", False),
     },
-    "a*(a|b)b*": {
-        ("", True),
+    "a...(a|b)b...": {
+        ("", False),
         ("b", True),
         ("a", True),
         ("?", False),
@@ -146,8 +146,8 @@ data = {
         ("?a?", False),
         ("sdfsd", False),
     },
-    "(<g1>a)*(<g2>a|b)b*": {
-        ("", True),
+    "(<g1>a)...(<g2>a|b)b...": {
+        ("", False),
         ("b", True),
         ("a", True),
         ("?", False),
@@ -219,6 +219,6 @@ def test_dfa2():
 
 if __name__ == "__main__":
     # test_dfa2()
-    test_dfa0()
+    # test_dfa0()
     # test_dfa1()
     test_regexes(data)
