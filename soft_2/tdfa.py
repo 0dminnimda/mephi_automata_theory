@@ -1,16 +1,17 @@
 from __future__ import annotations
 
-import string
 import classes as ast
 from dataclasses import dataclass, field
-from typing import TypeVar, Generic, Sequence, NamedTuple
+from typing import TypeVar, Generic, ClassVar
 from collections import deque
-from tnfa import TNFA
+from copy import deepcopy
+from tnfa import TNFA, OrdMapEpsTrans
 
 
 State = int
 Tag = int
 Priority = int
+Register = int
 E = TypeVar("E")
 
 
@@ -31,29 +32,66 @@ class TDFA(Generic[E]):
     ]  # ∆ - optionally tagged ϵ-transitions with priority
 
 
+@dataclass
+class Configuration:
+    state: State
+    registers: list[Register]
+    transition_tags: dict[Tag, State | None]
+    lookahead_tags: dict[Tag, State | None]
+    # id: ClassVar[int] = 0
+
+    # def __post_init__(self):
+    #     self.id = Configuration.id
+    #     Configuration.id += 1
+
+    # def __hash__(self) -> int:
+    #     return hash((self.state, self.id))
+
+    def set_tag(self, tag: Tag | None, value: int):
+        if tag is None:
+            return
+
+        if tag > 0:
+            self.lookahead_tags[tag] = value
+        else:
+            self.lookahead_tags[-tag] = -1
+
+
 def determinization(tnfa: TNFA):
     state = set()
     final_state = set()
     phi = []
 
+    ordered_eps = tnfa.get_ordered_mapped_epsilon_transitions()
+
     r0 = list(range(len(tnfa.tags)))
     fianl_registers = list(range(len(tnfa.tags), 2*len(tnfa.tags)))
     registers = r0 + fianl_registers
 
-    configurations = epsilon_closure([(tnfa.initial_state, r0, )])
-    presedances = presedance(configurations)
+    tdfa_state = 0
+    configurations = epsilon_closure(ordered_eps, tdfa_state, [Configuration(tnfa.initial_state, r0, dict(), dict())])
+    print("g", *configurations, "g", sep="\n")
+    # presedances = presedance(configurations)
 
 
-def epsilon_reachable(tnfa: TNFA, ordered_eps, states: set[State]) -> set[State]:
-    stack = deque(((s, []) for s in states))
-    result = set()
-    enqueued = set(stack)
+def epsilon_closure(ordered_eps: OrdMapEpsTrans, tdfa_state: State, confs: list[Configuration]) -> list[Configuration]:
+    stack: deque[Configuration] = deque(confs)
+    result: list[Configuration] = []
+    enqueued: set[State] = {it.state for it in stack}
     while stack:
-        state = stack.pop()
-        result.add(state)
+        conf = stack.pop()
 
-        for tag, next_state in ordered_eps.get(state, []):
+        tag_state_list = ordered_eps.get(conf.state, [])
+        # print(conf, tag_state_list)
+        for tag, next_state in tag_state_list:
             if next_state not in enqueued:
-                stack.append(next_state)
+                next_conf = deepcopy(conf)
+                next_conf.state = next_state
+                next_conf.set_tag(tag, tdfa_state)
+                stack.append(next_conf)
+                enqueued.add(next_state)
+
+        if not tag_state_list:
+            result.append(conf)
 
     return result
