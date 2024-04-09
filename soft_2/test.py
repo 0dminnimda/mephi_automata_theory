@@ -170,6 +170,6 @@ def test_dfa2():
 
 
 if __name__ == "__main__":
-    test_dfa()
     test_dfa2()
+    test_dfa()
     test_regexes(data)
