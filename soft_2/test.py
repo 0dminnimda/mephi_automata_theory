@@ -24,7 +24,9 @@ def test_one_regex(regex, cases):
     # pprint(asdict(tnfa, exclude={"alphabet"}), indent=4, width=200)
     for prompt, should_match in cases:
         if tnfa.run(prompt) != should_match:
-            _reported.append(f"{prompt!r} should {'not'if not should_match else ''} match {regex!r}")
+            _reported.append(f"{prompt!r} should {'not'if not should_match else ''} match {regex!r} in run")
+        if tnfa.simulation(prompt) != should_match:
+            _reported.append(f"{prompt!r} should {'not'if not should_match else ''} match {regex!r} in simulation")
 
 
 def test_regexes(data):
@@ -128,7 +130,37 @@ data = {
         ("??a", False),
         ("?a?", False),
         ("sdfsd", False),
-    }
+    },
+    "a*(a|b)b*": {
+        ("", True),
+        ("b", True),
+        ("a", True),
+        ("?", False),
+        ("aa", True),
+        ("bb", True),
+        ("aab", True),
+        ("?a", False),
+        ("a?", False),
+        ("??", False),
+        ("??a", False),
+        ("?a?", False),
+        ("sdfsd", False),
+    },
+    "(<g1>a)*(<g2>a|b)b*": {
+        ("", True),
+        ("b", True),
+        ("a", True),
+        ("?", False),
+        ("aa", True),
+        ("bb", True),
+        ("aab", True),
+        ("?a", False),
+        ("a?", False),
+        ("??", False),
+        ("??a", False),
+        ("?a?", False),
+        ("sdfsd", False),
+    },
 }
 
 
@@ -187,6 +219,6 @@ def test_dfa2():
 
 if __name__ == "__main__":
     # test_dfa2()
-    # test_dfa0()
-    test_dfa1()
+    test_dfa0()
+    # test_dfa1()
     test_regexes(data)
