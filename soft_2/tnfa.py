@@ -238,7 +238,7 @@ class TNFA(Generic[E]):
         if not any(conf.state == self.final_state for conf in confs):
             return False
 
-        print(confs)
+        print(repr(word), confs)
 
         return True
 
