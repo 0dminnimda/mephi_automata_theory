@@ -5,6 +5,8 @@ import classes as ast
 from dataclasses import dataclass, field
 from typing import TypeVar, Generic, Sequence, NamedTuple
 from collections import deque
+from pathlib import Path
+import os
 
 
 State = int
@@ -69,6 +71,39 @@ class TNFA(Generic[E]):
     ]  # ∆ - optionally tagged ϵ-transitions with priority
 
     named_groups_to_tags: dict[str, Tag] = field(default_factory=dict)
+
+    def dumps_dot(self) -> str:
+        result = []
+        result.append("digraph G {\n")
+        result.append("node [label=\"\", shape=circle, style=filled];\n\n")
+
+        for state in self.states:
+            if state == self.initial_state:
+                result.append(f"n{state} [label=\"{state}\", shape=doublecircle];\n")
+            elif state == self.final_state:
+                result.append(f"n{state} [label=\"{state}\", shape=doublecircle];\n")
+            else:
+                result.append(f"n{state} [label=\"{state}\"];\n")
+
+        for source, priority, tag, target in self.epsilon_transitions:
+            tag = "ε" if tag is None else tag
+            result.append(f"n{source} -> n{target} [label=\"{priority}/{tag}\"];\n")  # , color=blue
+
+        for source, symbol, target in self.symbol_transitions:
+            result.append(f"n{source} -> n{target} [label=\"{symbol}\"];\n")  # , color=blue
+
+        result.append("}\n")
+
+        return "".join(result)
+
+    def dump_dot(self, path: Path | str) -> Path:
+        path = Path(path)
+        path.write_text(self.dumps_dot(), encoding="utf-8")
+        return path
+
+    def to_dot_image(self, path: Path | str):
+        path = self.dump_dot(path)
+        os.system(f"dot -Tpng -Gdpi=300 {path} -o {path.stem}.png")  # coz why not
 
     def get_mapped_symbol_transitions(self) -> dict[tuple[State, E], State]:
         mapped_sym = {}
