@@ -1,5 +1,5 @@
 from parser import parse
-from dataclasses import asdict
+from dataclasses import asdict as _asdict
 from pprint import pprint
 from tnfa import ast_to_tnfa
 import classes as ast
@@ -9,11 +9,18 @@ from pathlib import Path
 _reported = []
 
 
+def asdict(obj, exclude=None):
+    d = _asdict(obj)
+    for k in exclude or set():
+        d.pop(k, None)
+    return d
+
+
 def test_one_regex(regex, cases):
     re = parse(regex)
     # print(re)
     tnfa = ast_to_tnfa(re)
-    # pprint(asdict(tnfa), indent=4, width=200)
+    # pprint(asdict(tnfa, exclude={"alphabet"}), indent=4, width=200)
     for prompt, should_match in cases:
         if tnfa.run(prompt) != should_match:
             _reported.append(f"{prompt!r} should {'not'if not should_match else ''} match {regex!r}")
@@ -135,7 +142,7 @@ def test_dfa():
         ast.AnyNumberOf(ast.Symbol("b")),
     ))
     tnfa = ast_to_tnfa(re)
-    pprint(asdict(tnfa), indent=4, width=200)
+    pprint(asdict(tnfa, exclude={"alphabet"}), indent=4, width=200)
     # tnfa.to_dot_image("tnfa.dot")
     tnfa.dump_dot("tnfa.dot")
 
