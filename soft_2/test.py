@@ -28,8 +28,11 @@ def test_one_regex(regex, cases):
     for prompt, should_match in cases:
         if tnfa.run(prompt) != should_match:
             _reported.append(f"{prompt!r} should {'not'if not should_match else ''} match {regex!r} in run")
-        if simulatable.simulate(prompt) != should_match:
+        match = simulatable.simulate(prompt)
+        if (match is not None) != should_match:
             _reported.append(f"{prompt!r} should {'not'if not should_match else ''} match {regex!r} in simulation")
+        if match is not None:
+            print(prompt, match)
 
 
 def test_regexes(data):

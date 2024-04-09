@@ -230,6 +230,17 @@ class SimulatableTNFA(Generic[E]):
                 result[state] = conf[1]
         return result
 
+    def gather_matches(self, word: str) -> dict[str, str]:
+        registers = self.confs[self.final_state]
+        matches = dict()
+        for name, (start, end) in self.named_groups_to_tags.items():
+            start_id = registers.get(start)
+            end_id = registers.get(end)
+            if start_id is None or end_id is None or start_id < 0 or end_id < 0:
+                continue
+            matches[name] = word[start_id: end_id]
+        return matches
+
     def simulate(self, word: str):
         self.confs = {self.initial_state: dict()}
 
@@ -237,41 +248,13 @@ class SimulatableTNFA(Generic[E]):
             self.confs = self.epsilon_closure(ind)
             self.confs = self.step_on_symbol(symbol)
             if not self.confs:
-                return False
+                return None
 
         self.confs = self.epsilon_closure(len(word))
-        if not any(state == self.final_state for state in self.confs):
-            return False
 
-        # match_ids = deque()
-        # matches = dict()
-        # if self.confs:
-            # values = iter(self.confs.values())
-            # registers = next(values)
-            # for conf in values:
-            #     assert conf == registers, f"different end registers {conf} != {registers} {word!r} {self.confs}"
-
-        prev_match_ids = None
-        for registers in self.confs.values():
-            match_ids = dict()
-            for name, (start, end) in self.named_groups_to_tags.items():
-                start_id = registers.get(start)
-                end_id = registers.get(end)
-                if start_id is None or end_id is None or start_id < 0 or end_id < 0:
-                    continue
-                match_ids[name] = (start_id, end_id)
-            if prev_match_ids is not None:
-                assert prev_match_ids == match_ids, f"different captures {prev_match_ids} != {match_ids} {word!r} {self.confs}"
-            else:
-                prev_match_ids = match_ids
-
-        matches = dict()
-        if prev_match_ids is not None:
-            for name, (start_id, end_id) in prev_match_ids.items():
-                matches[name] = word[start_id: end_id]
-        print(repr(word), matches, self.confs)
-
-        return True
+        if self.final_state not in self.confs:
+            return None
+        return self.gather_matches(word)
 
 
 @dataclass
