@@ -109,7 +109,7 @@ class TNFA(Generic[E]):
 
     def to_dot_image(self, path: Path | str):
         path = self.dump_dot(path)
-        os.system(f"dot -Tpng -Gdpi=300 {path} -o {path.stem}.png")  # coz why not
+        os.system(f"dot -Tpng -Gdpi=300 {path} -o {path}.png")  # coz why not
 
     def get_mapped_symbol_transitions(self) -> dict[tuple[State, E], State]:
         mapped_sym = {}
