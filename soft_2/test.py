@@ -18,21 +18,34 @@ def asdict(obj, exclude=None):
 
 
 def test_one_regex(regex, cases):
-    print(regex)
+    # print(regex)
     re = parse(regex)
     # print(re)
     tnfa = ast_to_tnfa(re)
     # tnfa.dump_dot("tnfa_k.dot")
     simulatable = tnfa.as_simulatable()
     # pprint(asdict(tnfa, exclude={"alphabet"}), indent=4, width=200)
-    for prompt, should_match in cases:
+    for prompt, should_match, groups in cases:
         if tnfa.run(prompt) != should_match:
-            _reported.append(f"{prompt!r} should {'not'if not should_match else ''} match {regex!r} in run")
+            _reported.append(
+                f"{prompt!r} should {'not'if not should_match else ''} match {regex!r} in run"
+            )
         match = simulatable.simulate(prompt)
         if (match is not None) != should_match:
-            _reported.append(f"{prompt!r} should {'not'if not should_match else ''} match {regex!r} in simulation")
-        if match is not None:
-            print(prompt, match)
+            _reported.append(
+                f"{prompt!r} should {'not'if not should_match else ''} match {regex!r} in simulation"
+            )
+
+        if match is None:
+            if groups != {}:
+                _reported.append(
+                    f"{prompt!r} did not match but expected groups captured for {regex!r}"
+                )
+        else:
+            if groups != match:
+                _reported.append(
+                    f"{prompt!r} expected to match groups {match}, but got {groups} for {regex!r}"
+                )
 
 
 def test_regexes(data):
@@ -49,124 +62,123 @@ def test_regexes(data):
         print("!!! All test cases passed !!!")
 
 
-
 data = {
     "b|((<gg>a)|%?%){2}?<gg>...": [
-        ("", True),
-        ("b", True),
-        ("a", False),
-        ("?", False),
-        ("aa", True),
-        ("?a", True),
-        ("a?", True),
-        ("??", True),
-        ("aaa", True),
-        ("?aa", True),
-        ("a?a", True),
-        ("??a", True),
-        ("?a?", False),
-        ("aaaa", True),
-        ("?aaa", True),
-        ("a?aa", True),
-        ("??aa", True),
-        ("sdfsd", False),
+        ("", True, {}),
+        ("b", True, {}),
+        ("a", False, {}),
+        ("?", False, {}),
+        ("aa", True, {"gg": "a"}),
+        ("?a", True, {"gg": "a"}),
+        ("a?", True, {}),  # {'gg': 'a'}
+        ("??", True, {}),
+        ("aaa", True, {}),
+        ("?aa", True, {}),
+        ("a?a", True, {}),
+        ("??a", True, {}),
+        ("?a?", False, {}),
+        ("aaaa", True, {}),
+        ("?aaa", True, {}),
+        ("a?aa", True, {}),
+        ("??aa", True, {}),
+        ("sdfsd", False, {}),
     ],
     "b|(a|%?%){2}?": [
-        ("", True),
-        ("b", True),
-        ("a", False),
-        ("?", False),
-        ("aa", True),
-        ("?a", True),
-        ("a?", True),
-        ("??", True),
-        ("??a", False),
-        ("?a?", False),
-        ("sdfsd", False),
+        ("", True, {}),
+        ("b", True, {}),
+        ("a", False, {}),
+        ("?", False, {}),
+        ("aa", True, {}),
+        ("?a", True, {}),
+        ("a?", True, {}),
+        ("??", True, {}),
+        ("??a", False, {}),
+        ("?a?", False, {}),
+        ("sdfsd", False, {}),
     ],
-    "(a)": {
-        ("", False),
-        ("a", True),
-        ("b", False),
-        ("ba", False),
-        ("ab", False),
-    },
-    "(abc)": {
-        ("", False),
-        ("a", False),
-        ("b", False),
-        ("ba", False),
-        ("ab", False),
-        ("abc", True),
-        ("abcd", False),
-    },
-    "(<gg>a)": {
-        ("", False),
-        ("a", True),
-        ("b", False),
-        ("ba", False),
-        ("ab", False),
-    },
-    "(<gg>a){2}": {
-        ("", False),
-        ("a", False),
-        ("b", False),
-        ("ba", False),
-        ("ab", False),
-        ("aa", True),
-        ("bb", False),
-        ("baa", False),
-        ("aba", False),
-        ("aaa", False),
-        ("bba", False),
-        ("bab", False),
-        ("abb", False),
-        ("aab", False),
-        ("bbb", False),
-    },
-    "b|((<gg>a)|%?%){2}?": {
-        ("", True),
-        ("b", True),
-        ("a", False),
-        ("?", False),
-        ("aa", True),
-        ("?a", True),
-        ("a?", True),
-        ("??", True),
-        ("??a", False),
-        ("?a?", False),
-        ("sdfsd", False),
-    },
-    "a...(a|b)b...": {
-        ("", False),
-        ("b", True),
-        ("a", True),
-        ("?", False),
-        ("aa", True),
-        ("bb", True),
-        ("aab", True),
-        ("?a", False),
-        ("a?", False),
-        ("??", False),
-        ("??a", False),
-        ("?a?", False),
-        ("sdfsd", False),
-    },
-    "(<g1>a)...(<g2>a|b)b...": {
-        ("", False),
-        ("b", True),
-        ("a", True),
-        ("?", False),
-        ("aa", True),
-        ("bb", True),
-        ("aab", True),
-        ("?a", False),
-        ("a?", False),
-        ("??", False),
-        ("??a", False),
-        ("?a?", False),
-        ("sdfsd", False),
-    },
+    "(a)": [
+        ("", False, {}),
+        ("a", True, {}),
+        ("b", False, {}),
+        ("ba", False, {}),
+        ("ab", False, {}),
+    ],
+    "(abc)": [
+        ("", False, {}),
+        ("a", False, {}),
+        ("b", False, {}),
+        ("ba", False, {}),
+        ("ab", False, {}),
+        ("abc", True, {}),
+        ("abcd", False, {}),
+    ],
+    "(<gg>a)": [
+        ("", False, {}),
+        ("a", True, {"gg": "a"}),
+        ("b", False, {}),
+        ("ba", False, {}),
+        ("ab", False, {}),
+    ],
+    "(<gg>a){2}": [
+        ("", False, {}),
+        ("a", False, {}),
+        ("b", False, {}),
+        ("ba", False, {}),
+        ("ab", False, {}),
+        ("aa", True, {"gg": "a"}),
+        ("bb", False, {}),
+        ("baa", False, {}),
+        ("aba", False, {}),
+        ("aaa", False, {}),
+        ("bba", False, {}),
+        ("bab", False, {}),
+        ("abb", False, {}),
+        ("aab", False, {}),
+        ("bbb", False, {}),
+    ],
+    "b|((<gg>a)|%?%){2}?": [
+        ("", True, {}),
+        ("b", True, {}),
+        ("a", False, {}),
+        ("?", False, {}),
+        ("aa", True, {"gg": "a"}),
+        ("?a", True, {"gg": "a"}),
+        ("a?", True, {}),  # {'gg': 'a'}
+        ("??", True, {}),
+        ("??a", False, {}),
+        ("?a?", False, {}),
+        ("sdfsd", False, {}),
+    ],
+    "a...(a|b)b...": [
+        ("", False, {}),
+        ("b", True, {}),
+        ("a", True, {}),
+        ("?", False, {}),
+        ("aa", True, {}),
+        ("bb", True, {}),
+        ("aab", True, {}),
+        ("?a", False, {}),
+        ("a?", False, {}),
+        ("??", False, {}),
+        ("??a", False, {}),
+        ("?a?", False, {}),
+        ("sdfsd", False, {}),
+    ],
+    "(<g1>a)...(<g2>a|b)b...": [
+        ("", False, {}),
+        ("b", True, {"g2": "b"}),
+        ("a", True, {"g2": "a"}),
+        ("?", False, {}),
+        ("aa", True, {"g2": "a", "g1": "a"}),
+        ("bb", True, {"g2": "b"}),
+        ("aab", True, {"g2": "a", "g1": "a"}),
+        ("?a", False, {}),
+        ("a?", False, {}),
+        ("??", False, {}),
+        ("??a", False, {}),
+        ("?a?", False, {}),
+        ("sdfsd", False, {}),
+    ],
 }
 
 
