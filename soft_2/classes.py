@@ -45,7 +45,7 @@ class Maybe(RE):
 class Repeat(RE):
     expr: RE
     min: int
-    max: int
+    max: int | None
 
 
 @dataclass(frozen=True)

@@ -64,6 +64,10 @@ class Parser:
         self.position += amount
         self.position = min(self.position, len(self.string))
 
+    def match_and_consume_spaces(self):
+        while self.string[self.position].isspace():
+            self.consume()
+
     def parse(self, string: str):
         self.string = string
         self.position = 0
@@ -129,6 +133,10 @@ class Parser:
         # r…
         # r...
         # r{number}
+        # r{min,}
+        # r{,max}
+        # r{min,max}
+        # r{,}
 
         expr = self.parse_atom()
 
@@ -141,16 +149,45 @@ class Parser:
             elif self.match_and_consume(ELLIPSIS) or self.match_and_consume("..."):
                 expr = AnyNumberOf(expr)
             elif self.match_and_consume(OPEN_CURLY_BRACKET):
-                count = self.parse_number()
-                if count is None:
-                    raise ValueError(f"Expected number at position {self.position}")
+                min, max = self.parse_inner_repeat()
+                self.match_and_consume_spaces()
                 if not self.match_and_consume(CLOSE_CURLY_BRACKET):
                     raise ValueError(f"Expected '}}' at position {self.position}")
-                expr = Repeat(expr, count, count)
+                expr = Repeat(expr, min, max)
             else:
                 break
 
         return expr
+
+    def parse_inner_repeat(self):
+        # number
+        # min,
+        # ,max
+        # min,max
+        # ,
+
+        self.match_and_consume_spaces()
+        if self.match_and_consume(","):
+            self.match_and_consume_spaces()
+            count = self.parse_number()
+            if count is None:
+                return 0, None  # ,
+            return 0, count  # ,max
+
+        self.match_and_consume_spaces()
+        count = self.parse_number()
+        if count is None:
+            raise ValueError(f"Expected number or comma at position {self.position}")
+
+        self.match_and_consume_spaces()
+        if self.match_and_consume(","):
+            self.match_and_consume_spaces()
+            max = self.parse_number()
+            if max is None:
+                return count, None  # min,
+            return count, max  # min,max
+
+        return count, count  # number
 
     def parse_atom(self):
         return (
