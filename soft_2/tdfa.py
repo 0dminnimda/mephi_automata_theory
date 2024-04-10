@@ -169,9 +169,8 @@ class DeterminableTNFA(Generic[E]):
         if state in self.states:
             return state
 
-        result = self.map_to_existing_state(state, regops)
-        if result is not None:
-            mapped_state, mapped_regops = result
+        mapped_state = self.map_to_existing_state(state, regops)
+        if mapped_state is not None:
             return mapped_state
 
         self.states.add(state)
@@ -189,25 +188,24 @@ class DeterminableTNFA(Generic[E]):
     #             result[state] = conf[1]
     #     return result
 
-    def map_to_existing_state(self, state: DetState, regops: RegOps) -> tuple[DetState, RegOps] | None:
+    def map_to_existing_state(self, state: DetState, regops: RegOps) -> DetState | None:
         for mapped_state in self.states:
-            mapping = self.map_state(state, mapped_state, regops)
-            if mapping is not None:
-                return mapped_state, mapping
+            if self.map_state(state, mapped_state, regops):
+                return mapped_state
         return None
 
-    def map_state(self, state: DetState, to_state: DetState, regops: RegOps) -> RegOps | None:
+    def map_state(self, state: DetState, to_state: DetState, regops: RegOps) -> bool:
         if state.confs.keys() != to_state.confs.keys():
-            return None
+            return False
 
         if not all(
             conf1.lookahead_tags == conf2.lookahead_tags
             for conf1, conf2 in zip(state.confs.values(), to_state.confs.values())
         ):
-            return None
+            return False
 
         if state.precs != to_state.precs:
-            return None
+            return False
 
         reg_to_reg1 = dict[Register, Register]()
         reg_to_reg2 = dict[Register, Register]()
@@ -223,7 +221,7 @@ class DeterminableTNFA(Generic[E]):
                     reg_to_reg1[i] = j
                     reg_to_reg2[j] = i
                 elif m_i != j or m_j != i:
-                    return None
+                    return False
 
         new_regops = regops[:]
         for i, regop in enumerate(new_regops):
@@ -245,7 +243,7 @@ class DeterminableTNFA(Generic[E]):
         #             conf.registers[i] = reg
 
 
-def topological_sort(regops: RegOps) -> RegOps | None:
+def topological_sort(regops: RegOps) -> bool:
     indegree = {}
 
     for regop in regops:
@@ -286,7 +284,8 @@ def topological_sort(regops: RegOps) -> RegOps | None:
 
         queue = queue_copy
 
-    return result if not nontrivial_cycle else None
+    regops[:] = result
+    return nontrivial_cycle
 
 
 # @dataclass
