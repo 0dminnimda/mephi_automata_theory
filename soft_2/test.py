@@ -262,6 +262,9 @@ data = {
 }
 
 
+# fmt: off
+
+
 def test_dfa0():
     # (<g1>a)*(<g2>a|<tag4>b)b*
     re = ast.Concat((
@@ -313,6 +316,9 @@ def test_dfa2():
     # tnfa.to_dot_image("tnfa.dot")
     tnfa.dump_dot("tnfa2.dot")
     tdfa.determinization(tnfa)
+
+
+# fmt: on
 
 
 if __name__ == "__main__":
