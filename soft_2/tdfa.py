@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import classes as ast
 from dataclasses import dataclass, field
-from typing import TypeVar, Generic, ClassVar
+from typing import TypeVar, Generic, ClassVar, Any
 from collections import deque
 from copy import deepcopy
-from tnfa import TNFA, OrdMapEpsTrans
+from tnfa import TNFA, OrdMapEpsTrans, MapSymTrans
 from enum import Enum, auto
 
 
@@ -42,7 +42,7 @@ class RegVal(Enum):
 class Configuration:
     # registers: list[Reg] = field(default_factory=list)
     registers: dict[Tag, Register] = field(default_factory=dict)
-    # transition_tags: dict[Tag, bool] = field(default_factory=dict)
+    transition_tags: dict[Tag, bool] = field(default_factory=dict, compare=False, hash=False)
     lookahead_tags: dict[Tag, bool] = field(default_factory=dict)
 
     def set_lookahead_tag(self, tag: Tag | None):
@@ -70,9 +70,9 @@ DetPrecs = list[State]
 
 @dataclass(frozen=True)
 class DetState:
-    # id: State
     confs: DetConfs
     precs: DetPrecs
+    id: State = 0
 
 
 @dataclass
@@ -101,19 +101,18 @@ class DeterminableTNFA(Generic[E]):
     final_function: dict[DetState, RegOps] = field(default_factory=dict)
 
     tnfa: TNFA[E] = field(init=False)
+    single_mapped_sym: MapSymTrans = field(default_factory=MapSymTrans)
     ordered_eps: OrdMapEpsTrans = field(default_factory=OrdMapEpsTrans)
     confs: DetConfs = field(default_factory=DetConfs)
     precs: DetPrecs = field(default_factory=DetPrecs)
+    registers: set[Register] = field(default_factory=set)
+    final_registers: dict[Tag, Register] = field(default_factory=dict)
     current_reg: int = 0
-    current_state: int = -1
 
     def get_next_reg(self):
         self.current_reg += 1
+        self.registers.add(self.current_reg)
         return self.current_reg
-
-    def get_next_state(self):
-        self.current_state += 1
-        return self.current_state
 
     @classmethod
     def determine(cls, tnfa: TNFA[E]):
@@ -124,25 +123,43 @@ class DeterminableTNFA(Generic[E]):
     def determinization(self, tnfa: TNFA[E]):
         self.tnfa = tnfa
         self.ordered_eps = tnfa.get_ordered_mapped_epsilon_transitions()
+        self.single_mapped_sym = tnfa.get_mapped_symbol_transitions()
 
-        # r0 = list(range(len(tnfa.tags)))
-        # r0 = dict.fromkeys(tnfa.tags, Reg.CURRENT)
         r0 = {tag: self.get_next_reg() for tag in tnfa.tags}
-        # fianl_registers = list(range(len(tnfa.tags), 2*len(tnfa.tags)))
-        # registers = r0 + fianl_registers
-
+        self.final_registers = {tag: self.get_next_reg() for tag in tnfa.tags}
         self.confs = {tnfa.initial_state: Configuration(r0)}
-        self.confs = self.epsilon_closure()
-        print("g", *self.confs, "g", sep="\n")
-        self.precs = self.precedence()
-        self.add_state([])
+        self.confs = self.epsilon_closure(self.confs)
+        self.precs = self.precedence(self.confs)
+        self.initial_state = self.add_state([])
+        print(self.initial_state)
 
-        # for state in self.states:
+        for state in self.states:
+            v_map: dict[tuple[Tag, RegVal], Register] = {}
 
+            for symbol in tnfa.alphabet:
+                self.confs = self.step_on_symbol(state, symbol)
+                self.confs = self.epsilon_closure(self.confs)
+                regops = self.get_transition_regops(v_map)
+                self.precs = self.precedence(self.confs)
+                next_state = self.add_state(regops)
+                self.transition_function[(state, symbol)] = (next_state, regops)
+                print(symbol, regops, next_state)
 
-    def epsilon_closure(self) -> DetConfs:
-        stack = deque(self.confs.items())
-        enqueued = set(self.confs.keys())
+        return (
+            tnfa.alphabet,
+            tnfa.tags,
+            self.states,
+            self.initial_state,
+            self.final_states,
+            self.registers,
+            self.final_registers,
+            self.transition_function,
+            self.final_function,
+        )
+
+    def epsilon_closure(self, confs: DetConfs) -> DetConfs:
+        stack = deque(confs.items())
+        enqueued = set(confs.keys())
         result = DetConfs()
 
         while stack:
@@ -161,8 +178,17 @@ class DeterminableTNFA(Generic[E]):
 
         return result
 
-    def precedence(self) -> DetPrecs:
-        return [state for state, conf in self.confs.items()]
+    def step_on_symbol(self, state: DetState, symbol: E) -> DetConfs:
+        result = DetConfs()
+        for tnfa_state in state.precs:
+            conf = state.confs[tnfa_state]
+            tnfa_p = self.single_mapped_sym.get((tnfa_state, symbol))
+            if tnfa_p is not None:
+                result[tnfa_state] = Configuration(conf.registers, conf.lookahead_tags)
+        return result
+
+    def precedence(self, confs: DetConfs) -> DetPrecs:
+        return list(confs.keys())
 
     def add_state(self, regops: RegOps) -> DetState:
         state = DetState(self.confs, self.precs)
@@ -177,16 +203,8 @@ class DeterminableTNFA(Generic[E]):
         for tnfa_state, conf in state.confs.items():
             if tnfa_state == self.tnfa.final_state:
                 self.final_states.add(state)
-                self.final_function[state] = self.calculate_final_regops(conf)
+                self.final_function[state] = self.get_final_regops(conf)
         return state
-
-    # def step_on_symbol(self, symbol: str) -> SimConfs:
-    #     result = SimConfs()
-    #     for conf in self.confs.items():
-    #         state = self.mapped_sym.get(conf[0], dict()).get(symbol)
-    #         if state is not None:
-    #             result[state] = conf[1]
-    #     return result
 
     def map_to_existing_state(self, state: DetState, regops: RegOps) -> DetState | None:
         for mapped_state in self.states:
@@ -234,13 +252,41 @@ class DeterminableTNFA(Generic[E]):
 
         return topological_sort(new_regops)
 
-    def calculate_final_regops(self, conf: Configuration) -> RegOps:
-        return []
-        # for tag, reg in conf.registers.items():
-        #     if tag in self.tnfa.named_groups_to_tags:
-        #         start, end = self.tnfa.named_groups_to_tags[tag]
-        #         for i in range(start, end + 1):
-        #             conf.registers[i] = reg
+    def get_final_regops(self, conf: Configuration) -> RegOps:
+        result = []
+        for tag in self.tnfa.tags:
+                lt = conf.lookahead_tags.get(tag)
+                if lt is not None:
+                    v = self.regop_rhs(conf.registers, lt, tag)
+                    i = self.final_registers[tag]
+                    result.append(SetOp(i, v))
+        return result
+
+    def get_transition_regops(self, v_map: dict[tuple[Tag, RegVal], Register]) -> RegOps:
+        result = []
+
+        for conf in self.confs.values():
+            for tag in self.tnfa.tags:
+                ht = conf.transition_tags.get(tag)
+                if ht is not None:
+                    v = self.regop_rhs(conf.registers, ht, tag)
+                    i = v_map.get((tag, v))
+                    if i is None:
+                        i = self.get_next_reg()
+                        v_map[(tag, v)] = i
+                        result.append(SetOp(i, v))
+                    conf.registers[tag] = i
+
+        return result
+
+    def regop_rhs(self, registers: dict[Tag, Register], hist: bool, tag: Tag) -> RegVal:
+        # assume every tag is multi-tag
+        # return (registers[tag], hist)
+        # FIXME: IDK what this function does
+        if hist:
+            return RegVal.CURRENT
+        else:
+            return RegVal.NOTHING
 
 
 def topological_sort(regops: RegOps) -> bool:
