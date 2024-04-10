@@ -4,7 +4,7 @@ import string
 import classes as ast
 from dataclasses import dataclass, field
 from typing import TypeVar, Generic, Sequence, NamedTuple
-from collections import deque
+from collections import deque, defaultdict
 from pathlib import Path
 import os
 
@@ -177,7 +177,7 @@ class TNFA(Generic[E]):
         )
 
 
-SimTags = dict[Tag, int | None]
+SimTags = defaultdict[Tag, deque[int | None]]
 SimConfs = dict[State, SimTags]
 
 
@@ -196,11 +196,11 @@ class SimulatableTNFA(Generic[E]):
             return
 
         if tag > 0:
-            registers[tag] = value
+            registers[tag].append(value)
         else:
-            registers[-tag] = -1
+            registers[-tag].append(None)
 
-    def epsilon_closure(self, index: int) -> SimConf:
+    def epsilon_closure(self, index: int) -> SimConfs:
         stack = deque(self.confs.items())
         enqueued = set(self.confs.keys())
         result = SimConfs()
@@ -222,7 +222,7 @@ class SimulatableTNFA(Generic[E]):
 
         return result
 
-    def step_on_symbol(self, symbol: str) -> SimConf:
+    def step_on_symbol(self, symbol: str) -> SimConfs:
         result = SimConfs()
         for conf in self.confs.items():
             state = self.mapped_sym.get(conf[0], dict()).get(symbol)
@@ -230,19 +230,19 @@ class SimulatableTNFA(Generic[E]):
                 result[state] = conf[1]
         return result
 
-    def gather_matches(self, word: str) -> dict[str, str]:
+    def gather_matches(self, word: str) -> dict[str, list[str]]:
         registers = self.confs[self.final_state]
-        matches = dict()
+        matches = defaultdict(list)
         for name, (start, end) in self.named_groups_to_tags.items():
-            start_id = registers.get(start)
-            end_id = registers.get(end)
-            if start_id is None or end_id is None or start_id < 0 or end_id < 0:
-                continue
-            matches[name] = word[start_id: end_id]
-        return matches
+            for start_id, end_id in zip(registers[start], registers[end]):
+                if start_id is not None and end_id is not None:
+                    matches[name].append(word[start_id: end_id])
+                else:
+                    matches[name].append(None)
+        return dict(matches)
 
     def simulate(self, word: str):
-        self.confs = {self.initial_state: dict()}
+        self.confs = {self.initial_state: defaultdict(deque)}
 
         for ind, symbol in enumerate(word):
             self.confs = self.epsilon_closure(ind)
