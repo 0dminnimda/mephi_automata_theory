@@ -2,6 +2,7 @@ from parser import parse
 from dataclasses import asdict as _asdict
 from pprint import pprint
 from tnfa import ast_to_tnfa
+from tdfa import tnfa_to_tdfa
 import classes as ast
 from pathlib import Path
 import tdfa
@@ -25,6 +26,9 @@ def test_one_regex(regex, cases):
     # tnfa.dump_dot("tnfa_k.dot")
     simulatable = tnfa.as_simulatable()
     # pprint(asdict(tnfa, exclude={"alphabet"}), indent=4, width=200)
+    # tdfa = tnfa_to_tdfa(tnfa)
+    # pprint(asdict(tdfa, exclude={"alphabet"}), indent=4, width=200)
+
     for prompt, should_match, groups in cases:
         if tnfa.run(prompt) != should_match:
             _reported.append(
@@ -290,8 +294,11 @@ def test_dfa0():
     tnfa = ast_to_tnfa(re)
     pprint(asdict(tnfa, exclude={"alphabet"}), indent=4, width=200)
     # tnfa.to_dot_image("tnfa.dot")
-    tnfa.dump_dot("tnfa0.dot")
-    tdfa.determinization(tnfa)
+    tnfa.dump_dot("tnfa.dot")
+    tdfa = tnfa_to_tdfa(tnfa)
+    # pprint(asdict(tdfa, exclude={"alphabet"}), indent=4, width=200)
+    # pprint(tdfa, indent=4, width=200)
+    # pprint(tdfa)
 
 
 def test_dfa1():
@@ -306,8 +313,8 @@ def test_dfa1():
     tnfa = ast_to_tnfa(re)
     pprint(asdict(tnfa, exclude={"alphabet"}), indent=4, width=200)
     # tnfa.to_dot_image("tnfa.dot")
-    tnfa.dump_dot("tnfa1.dot")
-    tdfa.determinization(tnfa)
+    # tnfa.dump_dot("tnfa1.dot")
+    # tdfa.determinization(tnfa)
 
 
 def test_dfa2():
@@ -326,8 +333,8 @@ def test_dfa2():
     tnfa = ast_to_tnfa(re)
     pprint(asdict(tnfa, exclude={"alphabet"}), indent=4, width=200)
     # tnfa.to_dot_image("tnfa.dot")
-    tnfa.dump_dot("tnfa2.dot")
-    tdfa.determinization(tnfa)
+    # tnfa.dump_dot("tnfa2.dot")
+    # tdfa.determinization(tnfa)
 
 
 # fmt: on
@@ -335,6 +342,6 @@ def test_dfa2():
 
 if __name__ == "__main__":
     # test_dfa2()
-    # test_dfa0()
+    test_dfa0()
     # test_dfa1()
-    test_regexes(data)
+    # test_regexes(data)

@@ -54,7 +54,7 @@ class NamedGroupReference:
 
 OrdMapEpsTrans = dict[State, list[tuple[Tag | None, State]]]
 DblMapSymTrans = dict[State, dict[E, State]]
-MapSymTrans = dict[tuple[State, E], State]
+MapSymTrans = dict[tuple[State, E], set[State]]
 
 
 @dataclass
