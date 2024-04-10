@@ -151,6 +151,7 @@ class TNFA(Generic[E]):
             for tag, next_state in ordered_eps.get(state, []):
                 if next_state not in enqueued:
                     stack.append(next_state)
+                    enqueued.add(next_state)
 
         return result
 
