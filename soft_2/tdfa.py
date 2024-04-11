@@ -379,9 +379,9 @@ def topological_sort(regops: RegOps) -> bool:
 
     print("topsort end", result)
     regops[:] = result
-    if not nontrivial_cycle:
+    if nontrivial_cycle:
         print("    no map coz nontrivial_cycle")
-    return nontrivial_cycle
+    return not nontrivial_cycle
 
 
 def tnfa_to_tdfa(tnfa: TNFA[E]) -> TDFA[E]:
