@@ -71,7 +71,7 @@ class SetOp:
     value: RegVal
 
     def __repr__(self) -> str:
-        return f"set({self.target} <- {self.value})"
+        return f"set({self.target} <= {self.value})"
 
 
 @dataclass(unsafe_hash=True)
@@ -81,7 +81,7 @@ class CopyOp:
     do_append: bool = False
 
     def __repr__(self) -> str:
-        return f"copy({self.target} <- {self.source})"
+        return f"copy({self.target} <= {self.source})"
 
 
 RegOp = SetOp | CopyOp
@@ -219,8 +219,8 @@ class DeterminableTNFA(Generic[E]):
                 return state2
 
         mapped_state = self.map_to_existing_state(state, regops)
-        print("Map", mapped_state)
         if mapped_state is not None:
+            print("Map to", mapped_state.id)
             self.undo_next_state()
             return mapped_state
 
