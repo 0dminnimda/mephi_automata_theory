@@ -11,6 +11,7 @@ from enum import Enum, auto
 import tnfa
 
 
+State = int
 Register = int
 E = TypeVar("E")
 
@@ -54,7 +55,7 @@ DetPrecs = list[tnfa.State]
 
 @dataclass(eq=True)
 class DetState:
-    id: int = field(compare=False)
+    id: State = field(compare=False)
     confs: DetConfs
     precs: DetPrecs
 
@@ -91,13 +92,13 @@ RegOps = list[RegOp]
 @dataclass
 class DeterminableTNFA(Generic[E]):
     states: list[DetState] = field(default_factory=list)
-    state_map: dict[int, DetState] = field(default_factory=dict)
-    initial_state: int = field(init=False)
-    final_states: set[int] = field(default_factory=set)
-    transition_function: dict[tuple[int, E], tuple[int, RegOps]] = field(
+    state_map: dict[State, DetState] = field(default_factory=dict)
+    initial_state: State = field(init=False)
+    final_states: set[State] = field(default_factory=set)
+    transition_function: dict[tuple[State, E], tuple[State, RegOps]] = field(
         default_factory=dict
     )
-    final_function: dict[int, RegOps] = field(default_factory=dict)
+    final_function: dict[State, RegOps] = field(default_factory=dict)
 
     tnfa: TNFA[E] = field(init=False)
     single_mapped_sym: MapSymTrans[E] = field(default_factory=MapSymTrans[E])
@@ -106,8 +107,8 @@ class DeterminableTNFA(Generic[E]):
     precs: DetPrecs = field(default_factory=DetPrecs)
     registers: set[Register] = field(default_factory=set)
     final_registers: dict[Tag, Register] = field(default_factory=dict)
-    current_reg: int = 0
-    current_state: int = -1
+    current_reg: Register = 0
+    current_state: State = -1
 
     def get_next_reg(self):
         self.current_reg += 1
@@ -398,12 +399,12 @@ class TDFA(Generic[E]):
     alphabet: set[E] = field(repr=False)
     tags: set[Tag]
     states: list[DetState]
-    initial_state: int
-    final_states: set[int]
+    initial_state: State
+    final_states: set[State]
     registers: set[Register]
     final_registers: dict[Tag, Register]
-    transition_function: dict[tuple[int, E], tuple[int, RegOps]]
-    final_function: dict[int, RegOps]
+    transition_function: dict[tuple[State, E], tuple[State, RegOps]]
+    final_function: dict[State, RegOps]
 
     def dumps_dot(self) -> str:
         result = []
