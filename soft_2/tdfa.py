@@ -158,7 +158,6 @@ class DeterminableTNFA(Generic[E]):
                 self.precs = self.precedence(self.confs)
                 next_state = self.add_state(regops)
                 self.transition_function[(state.id, symbol)] = (next_state.id, regops)
-                print(symbol, regops, "\n")
                 print(symbol, confs_as_table(c1))
                 print(next_state.as_table())
                 print()
@@ -231,8 +230,6 @@ class DeterminableTNFA(Generic[E]):
             if tnfa_state == self.tnfa.final_state:
                 self.final_states.add(state.id)
                 self.final_function[state.id] = self.get_final_regops(conf)
-                print(f"\n| FINAL for {state.id} |")
-                print(f"| {self.final_function[state.id]} |\n")
         return state
 
     def map_to_existing_state(self, state: DetState, regops: RegOps) -> DetState | None:
@@ -396,7 +393,7 @@ def topological_sort_original(regops: RegOps) -> bool:
     result = []
 
     nontrivial_cycle = False
-    print("topsort start", regops)
+    # print("topsort start", regops)
     queue = deque(regops)
 
     while queue:
@@ -422,7 +419,7 @@ def topological_sort_original(regops: RegOps) -> bool:
             result.extend(queue)
             break  # only cycles left
 
-    print("topsort end", result)
+    # print("topsort end", result)
     regops[:] = result
     if nontrivial_cycle:
         print("    no map coz nontrivial_cycle")

@@ -292,14 +292,8 @@ def test_dfa0():
         ast.AnyNumberOf(ast.Symbol("b")),
     ))
     tnfa = ast_to_tnfa(re)
-    pprint(asdict(tnfa, exclude={"alphabet"}), indent=4, width=200)
-    # tnfa.to_dot_image("tnfa.dot")
-    tnfa.dump_dot("tnfa.dot")
     tdfa = tnfa_to_tdfa(tnfa)
     tdfa.dump_dot("tdfa.dot")
-    # pprint(asdict(tdfa, exclude={"alphabet"}), indent=4, width=200)
-    # pprint(tdfa, indent=4, width=200)
-    # pprint(tdfa)
 
 
 def test_dfa1():
@@ -312,9 +306,8 @@ def test_dfa1():
         ast.Maybe(ast.Symbol("b")),
     ))
     tnfa = ast_to_tnfa(re)
-    pprint(asdict(tnfa, exclude={"alphabet"}), indent=4, width=200)
-    # tnfa.to_dot_image("tnfa.dot")
-    # tnfa.dump_dot("tnfa1.dot")
+    tdfa = tnfa_to_tdfa(tnfa)
+    tdfa.dump_dot("tdfa.dot")
 
 
 def test_dfa2():
@@ -331,9 +324,6 @@ def test_dfa2():
         )),
     ))
     tnfa = ast_to_tnfa(re)
-    # pprint(asdict(tnfa, exclude={"alphabet"}), indent=4, width=200)
-    # tnfa.to_dot_image("tnfa.dot")
-    tnfa.dump_dot("tnfa.dot")
     tdfa = tnfa_to_tdfa(tnfa)
     tdfa.dump_dot("tdfa.dot")
 
@@ -343,7 +333,7 @@ def test_dfa2():
 
 if __name__ == "__main__":
     # test_dfa2()
-    test_dfa0()
-    # test_dfa1()
+    # test_dfa0()
+    test_dfa1()
     # test_regexes(data)
     print("DONE")
