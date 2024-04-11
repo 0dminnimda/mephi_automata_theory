@@ -419,7 +419,7 @@ class TDFA(Generic[E]):
                 result.append(f'n{state.id} [label="{state.id}"];\n')
 
         for (q, s), (p, o) in self.transition_function.items():
-            ops = "".join(f"\n{op}" for op in o)
+            ops = "".join(f"\\n{op}" for op in o)
             result.append(f'n{q} -> n{p} [label="{s}/{ops}"];\n')
 
         # for source, symbol, target in self.symbol_transitions:
