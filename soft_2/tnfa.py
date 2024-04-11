@@ -73,6 +73,7 @@ class TNFA(Generic[E]):
         EpsilonTransition
     ]  # ∆ - optionally tagged ϵ-transitions with priority
 
+    miltitags: set[Tag] = field(default_factory=set)
     named_groups_to_tags: dict[str, tuple[Tag, Tag]] = field(default_factory=dict)
 
     def dumps_dot(self) -> str:
@@ -297,6 +298,8 @@ class Ast2Tnfa(Visitor):
         self.next_state = initial_state
         tnfa = self.visit(node, initial_state)
         tnfa.named_groups_to_tags = self.named_groups_to_tags
+        tnfa.miltitags = set()
+        # tnfa.miltitags = set(tnfa.tags)
         return tnfa
 
     def negative_tags_from(self, tnfa: TNFA, state: State):

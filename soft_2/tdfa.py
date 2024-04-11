@@ -264,8 +264,7 @@ class DeterminableTNFA(Generic[E]):
 
         for conf1, conf2 in zip(state.confs.values(), to_state.confs.values()):
             for tag in self.tnfa.tags:
-                # not assume every tag is multi-tag
-                if conf1.lookahead_tags.get(tag) is None:
+                if conf1.lookahead_tags.get(tag) is None or tag in self.tnfa.miltitags:
                     i = conf1.registers[tag]
                     j = conf2.registers[tag]
                     m_i = reg_to_reg1.get(i, None)
@@ -329,6 +328,7 @@ class DeterminableTNFA(Generic[E]):
 
     def regop_rhs(self, registers: dict[Tag, Register], hist: bool, tag: Tag) -> RegVal:
         # assume every tag is multi-tag
+        # self.tnfa.miltitags ?
         # return (registers[tag], hist)
         # FIXME: IDK what this function does
         if hist:
