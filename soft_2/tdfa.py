@@ -144,7 +144,6 @@ class DeterminableTNFA(Generic[E]):
         # 11 - 0
         # 9 - 1
 
-        i = 0
         for state in self.states:
             v_map: dict[tuple[Tag, RegVal], Register] = {}
 
@@ -162,10 +161,6 @@ class DeterminableTNFA(Generic[E]):
                 print(symbol, confs_as_table(c1))
                 print(next_state.as_table())
                 print()
-
-            i += 1
-            if i > 3:
-                break
 
         ordered_states = []
         for i in range(len(self.states)):
@@ -346,9 +341,8 @@ def topological_sort(regops: RegOps) -> bool:
 
     for regop in regops:
         if isinstance(regop, CopyOp):
-            indegree[regop.target] = indegree[regop.source] = 0
-        else:
-            indegree[regop.target] = 0
+            indegree[regop.source] = 0
+        indegree[regop.target] = 0
 
     for regop in regops:
         if isinstance(regop, CopyOp):
@@ -357,33 +351,33 @@ def topological_sort(regops: RegOps) -> bool:
     result = []
 
     nontrivial_cycle = False
+    print("topsort start", regops)
     queue = deque(regops)
 
     while queue:
-        queue_copy = deque()
         something_were_added = False
 
-        for regop in queue:
+        for _ in range(len(queue)):
+            regop = queue.pop()
             if indegree[regop.target] == 0:
                 result.append(regop)
                 something_were_added = True
                 if isinstance(regop, CopyOp):
                     indegree[regop.source] -= 1
             else:
-                queue_copy.append(regop)
+                queue.append(regop)
 
-        if not something_were_added and queue_copy:
+        if not something_were_added and queue:
             if any(
                 regop.target != regop.source
-                for regop in queue_copy
+                for regop in queue
                 if isinstance(regop, CopyOp)
             ):
                 nontrivial_cycle = True
-            result.extend(queue_copy)
+            result.extend(queue)
             break  # only cycles left
 
-        queue = queue_copy
-
+    print("topsort end", result)
     regops[:] = result
     if not nontrivial_cycle:
         print("    no map coz nontrivial_cycle")
@@ -425,7 +419,7 @@ class TDFA(Generic[E]):
                 result.append(f'n{state.id} [label="{state.id}"];\n')
 
         for (q, s), (p, o) in self.transition_function.items():
-            ops = "\n".join(map(str, o))
+            ops = "".join(f"\n{op}" for op in o)
             result.append(f'n{q} -> n{p} [label="{s}/{ops}"];\n')
 
         # for source, symbol, target in self.symbol_transitions:
