@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from typing import TypeVar, Generic
-from collections import deque
+from collections import deque, defaultdict
 from copy import deepcopy
 from pprint import pprint
 from pathlib import Path
@@ -338,51 +338,95 @@ class DeterminableTNFA(Generic[E]):
 
 
 def topological_sort(regops: RegOps) -> bool:
-    indegree = {}
+    set_ops = list[SetOp]()
+    other_ops = list[CopyOp]()
 
     for regop in regops:
-        if isinstance(regop, CopyOp):
-            indegree[regop.source] = 0
-        indegree[regop.target] = 0
+        if isinstance(regop, SetOp):
+            set_ops.append(regop)
+        else:
+            other_ops.append(regop)
 
-    for regop in regops:
-        if isinstance(regop, CopyOp):
-            indegree[regop.source] += 1
+    # print("topsort start", regops, set_ops, other_ops)
+    result = list[RegOp]()
 
-    result = []
+    target_to_other_ops = defaultdict[Register, list[CopyOp]](list)
+    indegree = defaultdict[Register, int](int)
+    graph = defaultdict[Register, set[Register]](set)
+    for regop in other_ops:
+        graph[regop.source].add(regop.target)
+        target_to_other_ops[regop.source].append(regop)
+        indegree[regop.source]
+        indegree[regop.target] += 1
 
-    nontrivial_cycle = False
-    print("topsort start", regops)
-    queue = deque(regops)
+    nodes = deque((target for target, count in indegree.items() if count == 0))
+    visited = set[Register]()
 
-    while queue:
-        something_were_added = False
+    print(nodes)
+    while nodes:
+        n = nodes.pop()
+        result.extend(target_to_other_ops[n])
+        for m in graph.pop(n, set()):
+            print(n, m, indegree[m])
+            indegree[m] -= 1
+            if indegree[m] == 0 and m not in visited:
+                nodes.append(m)
+                visited.add(m)
 
-        for _ in range(len(queue)):
-            regop = queue.pop()
-            if indegree[regop.target] == 0:
-                result.append(regop)
-                something_were_added = True
-                if isinstance(regop, CopyOp):
-                    indegree[regop.source] -= 1
-            else:
-                queue.append(regop)
+    nontrivial_cycle = any(outgoing - {target} for target, outgoing in graph.items())
 
-        if not something_were_added and queue:
-            if any(
-                regop.target != regop.source
-                for regop in queue
-                if isinstance(regop, CopyOp)
-            ):
-                nontrivial_cycle = True
-            result.extend(queue)
-            break  # only cycles left
-
-    print("topsort end", result)
+    result.extend(set_ops)
+    # print("topsort end", result, nontrivial_cycle, graph)
     regops[:] = result
-    if nontrivial_cycle:
-        print("    no map coz nontrivial_cycle")
     return not nontrivial_cycle
+
+
+# def topological_sort_original(regops: RegOps) -> bool:
+#     indegree = {}
+
+#     for regop in regops:
+#         if isinstance(regop, CopyOp):
+#             indegree[regop.source] = 0
+#         indegree[regop.target] = 0
+
+#     for regop in regops:
+#         if isinstance(regop, CopyOp):
+#             indegree[regop.source] += 1
+
+#     result = []
+
+#     nontrivial_cycle = False
+#     print("topsort start", regops)
+#     queue = deque(regops)
+
+#     while queue:
+#         something_were_added = False
+
+#         for _ in range(len(queue)):
+#             regop = queue.pop()
+#             if indegree[regop.target] == 0:
+#                 result.append(regop)
+#                 something_were_added = True
+#                 if isinstance(regop, CopyOp):
+#                     indegree[regop.source] -= 1
+#             else:
+#                 queue.append(regop)
+
+#         if not something_were_added and queue:
+#             if any(
+#                 regop.target != regop.source
+#                 for regop in queue
+#                 if isinstance(regop, CopyOp)
+#             ):
+#                 nontrivial_cycle = True
+#             result.extend(queue)
+#             break  # only cycles left
+
+#     print("topsort end", result)
+#     regops[:] = result
+#     if nontrivial_cycle:
+#         print("    no map coz nontrivial_cycle")
+#     return not nontrivial_cycle
 
 
 def tnfa_to_tdfa(tnfa: TNFA[E]) -> TDFA[E]:
