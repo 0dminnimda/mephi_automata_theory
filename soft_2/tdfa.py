@@ -460,9 +460,11 @@ class TDFA(Generic[E]):
                 result.append(f'n{state.id} [label="{state.id}", shape=doublecircle];\n')
             elif state.id in self.final_states:
                 result.append(f'n{state.id} [label="{state.id}", shape=doublecircle];\n')
-                result.append(f'n{state.id}_fin [style = invis];\n')
             else:
                 result.append(f'n{state.id} [label="{state.id}"];\n')
+
+            if state.id in self.final_function:
+                result.append(f'n{state.id}_fin [style = invis];\n')
 
         for (q, s), (p, o) in self.transition_function.items():
             ops = "".join(f"\\n{op}" for op in o)
