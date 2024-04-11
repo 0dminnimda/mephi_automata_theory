@@ -362,12 +362,10 @@ def topological_sort(regops: RegOps) -> bool:
     nodes = deque((target for target, count in indegree.items() if count == 0))
     visited = set[Register]()
 
-    print(nodes)
     while nodes:
         n = nodes.pop()
         result.extend(target_to_other_ops[n])
         for m in graph.pop(n, set()):
-            print(n, m, indegree[m])
             indegree[m] -= 1
             if indegree[m] == 0 and m not in visited:
                 nodes.append(m)
@@ -376,6 +374,8 @@ def topological_sort(regops: RegOps) -> bool:
     nontrivial_cycle = any(outgoing - {target} for target, outgoing in graph.items())
 
     result.extend(set_ops)
+    if nontrivial_cycle:
+        print("    no map coz nontrivial_cycle")
     # print("topsort end", result, nontrivial_cycle, graph)
     regops[:] = result
     return not nontrivial_cycle
