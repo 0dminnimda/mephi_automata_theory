@@ -161,19 +161,10 @@ class DeterminableTNFA(Generic[E]):
                 print(symbol, regops, "\n")
                 print(symbol, confs_as_table(c1))
                 print(next_state.as_table())
-                # print(symbol, next_state)
                 print()
 
-            # for state1 in self.states:
-            #     # pprint(state1)
-            #     for state2 in self.states:
-            #         # if hash(state1) == hash(state2):
-            #         #     print(f"hash of {state.id} == hash of {state2.id} ({hash(state1)})")
-            #         if state1 == state2:
-            #             print(f"{state1.id} == {state2.id}")
-
             i += 1
-            if i > 30:
+            if i > 3:
                 break
 
         ordered_states = []
@@ -250,26 +241,26 @@ class DeterminableTNFA(Generic[E]):
 
     def map_to_existing_state(self, state: DetState, regops: RegOps) -> DetState | None:
         for mapped_state in self.states:
+            print("mapping", state.id, "to", mapped_state.id)
             if self.map_state(state, mapped_state, regops):
+                print("    yes map")
                 return mapped_state
-            # else:
-            #     print("no map", state.id, "to", mapped_state.id)
         return None
 
     def map_state(self, state: DetState, to_state: DetState, regops: RegOps) -> bool:
         if state.confs.keys() != to_state.confs.keys():
-            print("no map", state.id, "to", to_state.id, "coz keys")
+            print("    no map", "coz keys")
             return False
 
         if not all(
             conf1.lookahead_tags == conf2.lookahead_tags
             for conf1, conf2 in zip(state.confs.values(), to_state.confs.values())
         ):
-            print("no map", state.id, "to", to_state.id, "coz lookahead_tags")
+            print("    no map", "coz lookahead_tags")
             return False
 
         if state.precs != to_state.precs:
-            print("no map", state.id, "to", to_state.id, "coz precs")
+            print("    no map", "coz precs")
             return False
 
         reg_to_reg1 = dict[Register, Register]()
@@ -290,7 +281,7 @@ class DeterminableTNFA(Generic[E]):
                         ((m_i is not None) and (m_i != j))
                         or ((m_j is not None) and (m_j != i))
                     ):
-                        print("no map", state.id, "to", to_state.id, f"coz not bijection {m_i=} != {j=} or {m_j=} != {i=}")
+                        print("    no map", f"coz not bijection {m_i=} != {j=} or {m_j=} != {i=}")
                         return False
 
         for i, regop in enumerate(regops):
@@ -395,7 +386,7 @@ def topological_sort(regops: RegOps) -> bool:
 
     regops[:] = result
     if not nontrivial_cycle:
-        print("no map coz nontrivial_cycle")
+        print("    no map coz nontrivial_cycle")
     return nontrivial_cycle
 
 
