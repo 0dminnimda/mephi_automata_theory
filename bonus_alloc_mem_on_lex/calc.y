@@ -36,5 +36,3 @@ int main(int argc, const char* argv[]) {
     std::cout << "Total number of strings with errors: " << yynerrs << std::endl;
     return 0;
 }
-
-// HMM: LDSKF#":'#"#'#
