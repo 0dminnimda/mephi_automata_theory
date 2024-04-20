@@ -8,6 +8,7 @@
 %}
 %token STRING
 %left '+'
+%destructor { std::cout << "call destructor for: '" << $$[0] << "'" << std::endl; delete[] $$;} expr 
 %%
 program:
     program '\n'
@@ -33,3 +34,5 @@ int main(int argc, const char* argv[]) {
     std::cout << "Total number of strings with errors: " << yynerrs << std::endl;
     return 0;
 }
+
+// HMM: LDSKF#":'#"#'#
