@@ -8,12 +8,14 @@
 %}
 %token STRING
 %left '+'
-%destructor { std::cout << "call destructor for: '" << $$[0] << "'" << std::endl; delete[] $$;} expr 
+%destructor {
+    if ($$) { std::cout << "call destructor for: '" << $$[0] << "'" << std::endl; } delete[] $$;
+} expr STRING
 %%
 program:
     program '\n'
     | program expr '\n' { std::cout << (*$2) << std::endl; delete[] $2; }
-    | program error '\n' { std::cout << "some error at line " << @2.first_line << std::endl; delete[] $2; yyerrok; }
+    | program error '\n' { std::cout << "some error at line " << @2.first_line << std::endl; yyerrok; }
     |
     ;
 expr:
