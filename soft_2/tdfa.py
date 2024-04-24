@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import TypeVar, Generic
+from typing import TypeVar, Generic, Sequence
 from collections import deque, defaultdict
 from copy import deepcopy
 from pprint import pprint
@@ -107,7 +107,7 @@ class DeterminableTNFA(Generic[E]):
     precs: DetPrecs = field(default_factory=DetPrecs)
     registers: set[Register] = field(default_factory=set)
     final_registers: dict[Tag, Register] = field(default_factory=dict)
-    current_reg: Register = 0
+    current_reg: Register = -1
     current_state: State = -1
 
     def get_next_reg(self):
@@ -129,7 +129,7 @@ class DeterminableTNFA(Generic[E]):
         self.ordered_eps = tnfa.get_ordered_mapped_epsilon_transitions()
         self.single_mapped_sym = tnfa.get_mapped_symbol_transitions()
 
-        r0 = {tag: self.get_next_reg() for tag in tnfa.tags}
+        r0 = {tag: -i for i, tag in enumerate(tnfa.tags)}
         self.final_registers = {tag: self.get_next_reg() for tag in tnfa.tags}
         self.confs = {tnfa.initial_state: Configuration(r0)}
         self.confs = self.epsilon_closure(self.confs)
@@ -176,6 +176,7 @@ class DeterminableTNFA(Generic[E]):
             self.final_registers,
             self.transition_function,
             self.final_function,
+            tnfa.named_groups_to_tags,
         )
 
     def epsilon_closure(self, confs: DetConfs) -> DetConfs:
@@ -447,6 +448,8 @@ class TDFA(Generic[E]):
     transition_function: dict[tuple[State, E], tuple[State, RegOps]]
     final_function: dict[State, RegOps]
 
+    named_groups_to_tags: dict[str, tuple[Tag, Tag]]
+
     def dumps_dot(self) -> str:
         result = []
         result.append("digraph G {\n")
@@ -482,3 +485,71 @@ class TDFA(Generic[E]):
         path.write_text(self.dumps_dot(), encoding="utf-8")
         return path
 
+    def as_simulatable(self) -> SimulatableTDFA[E]:
+        return SimulatableTDFA[E](
+            self.initial_state,
+            self.final_states,
+            len(self.registers),
+            self.final_registers,
+            self.transition_function,
+            self.final_function,
+            self.named_groups_to_tags,
+        )
+
+
+@dataclass
+class SimulatableTDFA(Generic[E]):
+    initial_state: State
+    final_states: set[State]
+    register_count: int
+    final_registers: dict[Tag, Register]
+    transition_function: dict[tuple[State, E], tuple[State, RegOps]]
+    final_function: dict[State, RegOps]
+
+    named_groups_to_tags: dict[str, tuple[Tag, Tag]]
+
+    registers: list[int | None] = field(default_factory=list)
+
+    def execute_regops(self, index: int, regops: RegOps) -> None:
+        for regop in regops:
+            if isinstance(regop, SetOp):
+                if regop.value is RegVal.NOTHING:
+                    self.registers[regop.target] = None
+                else:
+                    self.registers[regop.target] = index
+            elif isinstance(regop, CopyOp):
+                self.registers[regop.target] = self.registers[regop.source]
+
+    def gather_matches(self, word: Sequence[E]) -> dict[str, list[str]]:
+        matches = defaultdict(list)
+        for name, (start, end) in self.named_groups_to_tags.items():
+            start_ind = self.registers[self.final_registers[start]]
+            end_ind = self.registers[self.final_registers[end]]
+            # for start_id, end_id in zip(...):
+            if start_ind is not None and end_ind is not None:
+                matches[name].append(word[start_ind: end_ind])
+            else:
+                matches[name].append(None)
+        return dict(matches)
+
+    def simulate(self, word: Sequence[E]) -> tuple[bool, dict[str, list[str]]]:
+        state = self.initial_state
+        self.registers = [None] * self.register_count
+
+        for i, symbol in enumerate(word):
+            res = self.transition_function.get((state, symbol))
+            if res is None:
+                return False, {}
+
+            state, regops = res
+            self.execute_regops(i, regops)
+
+        if state not in self.final_states:
+            return False, {}
+
+        regops = self.final_function.get(state)
+        if regops is not None:
+            self.execute_regops(len(word), regops)
+
+        print(self.registers)
+        return True, self.gather_matches(word)

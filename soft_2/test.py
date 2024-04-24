@@ -308,6 +308,7 @@ def test_dfa1():
     tnfa = ast_to_tnfa(re)
     tdfa = tnfa_to_tdfa(tnfa)
     tdfa.dump_dot("tdfa.dot")
+    print(tdfa.as_simulatable().simulate("aaabb"))
 
 
 def test_dfa2():
