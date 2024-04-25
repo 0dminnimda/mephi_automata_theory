@@ -91,6 +91,7 @@ RegOps = list[RegOp]
 
 @dataclass
 class DeterminableTNFA(Generic[E]):
+    verbose: bool = False
     states: list[DetState] = field(default_factory=list)
     state_map: dict[State, DetState] = field(default_factory=dict)
     initial_state: State = field(init=False)
@@ -133,20 +134,14 @@ class DeterminableTNFA(Generic[E]):
         self.confs = self.epsilon_closure(self.confs)
         self.precs = self.precedence(self.confs)
         self.initial_state = self.add_state([]).id
-        print(self.state_map[self.initial_state].as_table())
-
-        # s (1a2)∗3(a|4b)5b
-        # {'g1': (3, 4), 'g2': (1, 2)},
-        # 2 - 8
-        # 8 - 2
-        # 5 - 4
-        # 11 - 0
-        # 9 - 1
+        if self.verbose:
+            print(self.state_map[self.initial_state].as_table())
 
         for state in self.states:
             v_map: dict[tuple[Tag, RegVal], Register] = {}
 
-            print("Generating from", state.id, "state")
+            if self.verbose:
+                print("Generating from", state.id, "state")
             for symbol in tnfa.alphabet:
                 c1 = self.confs = self.step_on_symbol(state, symbol)
                 self.confs = self.epsilon_closure(self.confs)
@@ -156,9 +151,10 @@ class DeterminableTNFA(Generic[E]):
                 self.precs = self.precedence(self.confs)
                 next_state = self.add_state(regops)
                 self.transition_function[(state.id, symbol)] = (next_state.id, regops)
-                print(symbol, confs_as_table(c1))
-                print(next_state.as_table())
-                print()
+                if self.verbose:
+                    print(symbol, confs_as_table(c1))
+                    print(next_state.as_table())
+                    print()
 
         ordered_states = []
         for i in range(len(self.states)):
@@ -220,7 +216,8 @@ class DeterminableTNFA(Generic[E]):
 
         mapped_state = self.map_to_existing_state(state, regops)
         if mapped_state is not None:
-            print("Map to", mapped_state.id)
+            if self.verbose:
+                print("Map to", mapped_state.id)
             self.undo_next_state()
             return mapped_state
 
@@ -234,26 +231,31 @@ class DeterminableTNFA(Generic[E]):
 
     def map_to_existing_state(self, state: DetState, regops: RegOps) -> DetState | None:
         for mapped_state in self.states:
-            print("mapping", state.id, "to", mapped_state.id)
+            if self.verbose:
+                print("mapping", state.id, "to", mapped_state.id)
             if self.map_state(state, mapped_state, regops):
-                print("    yes map")
+                if self.verbose:
+                    print("    yes map")
                 return mapped_state
         return None
 
     def map_state(self, state: DetState, to_state: DetState, regops: RegOps) -> bool:
         if state.confs.keys() != to_state.confs.keys():
-            print("    no map", "coz keys")
+            if self.verbose:
+                print("    no map", "coz keys")
             return False
 
         if not all(
             conf1.lookahead_tags == conf2.lookahead_tags
             for conf1, conf2 in zip(state.confs.values(), to_state.confs.values())
         ):
-            print("    no map", "coz lookahead_tags")
+            if self.verbose:
+                print("    no map", "coz lookahead_tags")
             return False
 
         if state.precs != to_state.precs:
-            print("    no map", "coz precs")
+            if self.verbose:
+                print("    no map", "coz precs")
             return False
 
         reg_to_reg1 = dict[Register, Register]()
@@ -273,7 +275,8 @@ class DeterminableTNFA(Generic[E]):
                         ((m_i is not None) and (m_i != j))
                         or ((m_j is not None) and (m_j != i))
                     ):
-                        print("    no map", f"coz not bijection {m_i=} != {j=} or {m_j=} != {i=}")
+                        if self.verbose:
+                            print("    no map", f"coz not bijection {m_i=} != {j=} or {m_j=} != {i=}")
                         return False
 
         for i, regop in enumerate(regops):
@@ -371,8 +374,8 @@ def topological_sort(regops: RegOps) -> bool:
     nontrivial_cycle = any(outgoing - {target} for target, outgoing in graph.items())
 
     result.extend(set_ops)
-    if nontrivial_cycle:
-        print("    no map coz nontrivial_cycle")
+    # if nontrivial_cycle:
+    #     print("    no map coz nontrivial_cycle")
     # print("topsort end", result, nontrivial_cycle, graph)
     regops[:] = result
     return not nontrivial_cycle
@@ -421,8 +424,8 @@ def topological_sort_original(regops: RegOps) -> bool:
 
     # print("topsort end", result)
     regops[:] = result
-    if nontrivial_cycle:
-        print("    no map coz nontrivial_cycle")
+    # if nontrivial_cycle:
+    #     print("    no map coz nontrivial_cycle")
     return not nontrivial_cycle
 
 
@@ -493,7 +496,6 @@ class TDFA(Generic[E]):
             regs = [MultipleRegisterStorage() for _ in self.registers]
         else:
             regs = [SingleRegisterStorage() for _ in self.registers]
-        print(self.registers)
         return SimulatableTDFA[E](
             self.initial_state,
             self.final_states,
@@ -554,9 +556,7 @@ class SimulatableTDFA(Generic[E]):
     named_groups_to_tags: dict[str, tuple[Tag, Tag]]
 
     def execute_regops(self, index: int, regops: RegOps) -> None:
-        print(len(self.registers))
         for regop in regops:
-            print("  ", regop.target)
             if isinstance(regop, SetOp):
                 if regop.value is RegVal.NOTHING:
                     self.registers[regop.target].set(None)
@@ -567,7 +567,6 @@ class SimulatableTDFA(Generic[E]):
 
     def gather_matches(self, word: Sequence[E]) -> dict[str, list[str]]:
         matches = defaultdict(list)
-        print(self.registers, self.final_registers, self.named_groups_to_tags)
         for name, (start, end) in self.named_groups_to_tags.items():
             start_indices = self.registers[self.final_registers[start]].get_all()
             end_indices = self.registers[self.final_registers[end]].get_all()
@@ -586,21 +585,16 @@ class SimulatableTDFA(Generic[E]):
         for i, symbol in enumerate(word):
             res = self.transition_function.get((state, symbol))
             if res is None:
-                # print(state, "no transitions", symbol)
                 return None
 
-            prev = state
             state, regops = res
-            # print(prev, "->", state)
             self.execute_regops(i, regops)
 
         if state not in self.final_states:
-            # print(state, "not a final state", self.final_states)
             return None
 
         regops = self.final_function.get(state)
         if regops is not None:
             self.execute_regops(len(word), regops)
 
-        # print(self.registers)
         return self.gather_matches(word)
