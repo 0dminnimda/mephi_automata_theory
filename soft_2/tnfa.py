@@ -41,6 +41,16 @@ class NamedGroupReference:
 Matcher = ast.SymbolRange | NamedGroupReference
 
 
+def dump_matcher(matcher: Matcher) -> str:
+    if isinstance(matcher, ast.SymbolRange):
+        if matcher.start == matcher.end:
+            return f"{matcher.start}"
+        else:
+            return f"[{matcher.start}-{matcher.end}]"
+    else:
+        return f"reg_ref<{matcher.start_tag}: {matcher.end_tag}>"
+
+
 class EpsilonTransition(NamedTuple):
     source: State
     priority: Priority
@@ -78,15 +88,6 @@ class TNFA(Generic[E]):
     miltitags: set[Tag] = field(default_factory=set)
     named_groups_to_tags: NGroup2Tags = field(default_factory=NGroup2Tags)
 
-    def dump_matcher(self, matcher: Matcher) -> str:
-        if isinstance(matcher, ast.SymbolRange):
-            if matcher.start == matcher.end:
-                return f"{matcher.start}"
-            else:
-                return f"{matcher.start}-{matcher.end}"
-        else:
-            return f"reg_ref[{matcher.start_tag}: {matcher.end_tag}]"
-
     def dumps_dot(self) -> str:
         result = []
         result.append("digraph G {\n")
@@ -108,7 +109,7 @@ class TNFA(Generic[E]):
 
         for source, matcher, target in self.symbol_transitions:
             result.append(
-                f'n{source} -> n{target} [label="{self.dump_matcher(matcher)}"];\n'
+                f'n{source} -> n{target} [label="{dump_matcher(matcher)}"];\n'
             )  # , color=blue
 
         result.append("}\n")
