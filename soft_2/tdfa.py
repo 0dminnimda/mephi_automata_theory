@@ -8,7 +8,7 @@ from pprint import pprint
 from pathlib import Path
 from simplify_ast import NGroup2Tags
 import classes as ast
-from tnfa import TNFA, OrdMapEpsTrans, DblMapSymTrans, Tag, AnyTag, FixedTag, Priority, Matcher, dump_matcher
+from tnfa import TNFA, OrdMapEpsTrans, DblMapSymTrans, Tag, AnyTag, FixedTag, Priority, Matcher, dump_matcher, NamedGroupReference
 from enum import Enum, auto
 from parser import iter_unique
 import tnfa
@@ -518,6 +518,13 @@ class TDFA(Generic[E]):
 
         return sorted_result
 
+    def put_registers_into_group_references(self) -> None:
+        result = dict()
+        for (q, matcher), (p, o) in self.transition_function.items():
+            if isinstance(matcher, NamedGroupReference):
+                self.states[q].confs
+                # matcher.start_tag
+
     def as_simulatable(self) -> SimulatableTDFA[E]:
         # regs = [MultipleRegisterStorage() if tag in self.miltitags else SingleRegisterStorage() for tag in self.final_registers]
         # regs += [SingleRegisterStorage() for _ in range(len(regs), len(self.registers))]
@@ -526,6 +533,7 @@ class TDFA(Generic[E]):
             regs = [MultipleRegisterStorage() for _ in self.registers]
         else:
             regs = [SingleRegisterStorage() for _ in self.registers]
+
         return SimulatableTDFA[E](
             self.initial_state,
             self.final_states,
@@ -542,7 +550,8 @@ class SingleRegisterStorage:
     value: int | None = None
 
     def set(self, value: int | None) -> None:
-        self.value = value
+        if value is not None:
+            self.value = value
 
     def get_last(self) -> int | None:
         return self.value
@@ -552,6 +561,9 @@ class SingleRegisterStorage:
 
     def clear(self) -> None:
         self.value = None
+
+    def __repr__(self) -> str:
+        return f"reg({self.value})"
 
 
 @dataclass
@@ -569,6 +581,9 @@ class MultipleRegisterStorage:
 
     def clear(self) -> None:
         self.values.clear()
+
+    def __repr__(self) -> str:
+        return f"reg({str(self.values)[6:-1]})"
 
 
 RegisterStorage = SingleRegisterStorage | MultipleRegisterStorage
@@ -620,8 +635,22 @@ class SimulatableTDFA(Generic[E]):
             else:
                 return None
         else:
-            return None
-            # raise NotImplementedError("groups")
+            start_store, start_offset = self.get_register_storage(matcher.start_tag)
+            end_store, end_offset = self.get_register_storage(matcher.end_tag)
+            print(matcher, start_store, start_offset, end_store, end_offset)
+            print(self.registers)
+            start_ind = start_store.get_last()
+            end_ind = end_store.get_last()
+            if start_ind is None or end_ind is None:
+                print(f"{start_ind=} is None or {end_ind=} is None")
+                return None
+
+            group_match = word[start_ind + start_offset: end_ind + end_offset]
+            if word.startswith(group_match, index):
+                return index + len(group_match)
+            else:
+                print("not word.startswith(group_match, index)")
+                return None
 
     def find_next_transition(self, state: State, word: str, index: int) -> tuple[int, State, RegOps] | None:
         for matcher, next_state, regops in self.transition_function.get(state, []):

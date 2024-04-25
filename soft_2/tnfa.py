@@ -41,6 +41,13 @@ class NamedGroupReference:
 Matcher = ast.SymbolRange | NamedGroupReference
 
 
+def dump_tag(tag: AnyTag) -> str:
+    if isinstance(tag, FixedTag):
+        return f"({tag.origin})+{tag.offset}"
+    else:
+        return f"({tag})"
+
+
 def dump_matcher(matcher: Matcher) -> str:
     if isinstance(matcher, ast.SymbolRange):
         if matcher.start == matcher.end:
@@ -48,7 +55,7 @@ def dump_matcher(matcher: Matcher) -> str:
         else:
             return f"[{matcher.start}-{matcher.end}]"
     else:
-        return f"reg_ref<{matcher.start_tag}: {matcher.end_tag}>"
+        return f"ref<{dump_tag(matcher.start_tag)}: {dump_tag(matcher.end_tag)}>"
 
 
 class EpsilonTransition(NamedTuple):
