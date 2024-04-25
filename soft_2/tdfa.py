@@ -117,11 +117,9 @@ class DeterminableTNFA(Generic[E]):
 
     def get_next_state(self):
         self.current_state += 1
-        self.registers.add(self.current_state)
         return self.current_state
 
     def undo_next_state(self):
-        self.registers.remove(self.current_state)
         self.current_state -= 1
 
     def determinization(self, tnfa: TNFA[E]):
