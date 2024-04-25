@@ -175,6 +175,7 @@ class DeterminableTNFA(Generic[E]):
             self.transition_function,
             self.final_function,
             tnfa.named_groups_to_tags,
+            tnfa.miltitags,
         )
 
     def epsilon_closure(self, confs: DetConfs) -> DetConfs:
@@ -447,6 +448,7 @@ class TDFA(Generic[E]):
     final_function: dict[State, RegOps]
 
     named_groups_to_tags: dict[str, tuple[Tag, Tag]]
+    miltitags: set[Tag]
 
     def dumps_dot(self) -> str:
         result = []
@@ -484,70 +486,121 @@ class TDFA(Generic[E]):
         return path
 
     def as_simulatable(self) -> SimulatableTDFA[E]:
+        # regs = [MultipleRegisterStorage() if tag in self.miltitags else SingleRegisterStorage() for tag in self.final_registers]
+        # regs += [SingleRegisterStorage() for _ in range(len(regs), len(self.registers))]
+        regs: list[RegisterStorage]
+        if self.miltitags:
+            regs = [MultipleRegisterStorage() for _ in self.registers]
+        else:
+            regs = [SingleRegisterStorage() for _ in self.registers]
+        print(self.registers)
         return SimulatableTDFA[E](
             self.initial_state,
             self.final_states,
-            len(self.registers),
             self.final_registers,
             self.transition_function,
             self.final_function,
+            regs,
             self.named_groups_to_tags,
         )
+
+
+@dataclass
+class SingleRegisterStorage:
+    value: int | None = None
+
+    def set(self, value: int | None) -> None:
+        self.value = value
+
+    def get_last(self) -> int | None:
+        return self.value
+
+    def get_all(self) -> Sequence[int | None]:
+        return [self.value]
+
+    def clear(self) -> None:
+        self.value = None
+
+
+@dataclass
+class MultipleRegisterStorage:
+    values: deque[int | None] = field(default_factory=deque)
+
+    def set(self, value: int | None) -> None:
+        self.values.append(value)
+
+    def get_last(self) -> int | None:
+        return self.values[-1]
+
+    def get_all(self) -> Sequence[int | None]:
+        return self.values
+
+    def clear(self) -> None:
+        self.values.clear()
+
+
+RegisterStorage = SingleRegisterStorage | MultipleRegisterStorage
 
 
 @dataclass
 class SimulatableTDFA(Generic[E]):
     initial_state: State
     final_states: set[State]
-    register_count: int
     final_registers: dict[Tag, Register]
     transition_function: dict[tuple[State, E], tuple[State, RegOps]]
     final_function: dict[State, RegOps]
 
+    registers: list[RegisterStorage]
     named_groups_to_tags: dict[str, tuple[Tag, Tag]]
 
-    registers: list[int | None] = field(default_factory=list)
-
     def execute_regops(self, index: int, regops: RegOps) -> None:
+        print(len(self.registers))
         for regop in regops:
+            print("  ", regop.target)
             if isinstance(regop, SetOp):
                 if regop.value is RegVal.NOTHING:
-                    self.registers[regop.target] = None
+                    self.registers[regop.target].set(None)
                 else:
-                    self.registers[regop.target] = index
+                    self.registers[regop.target].set(index)
             elif isinstance(regop, CopyOp):
-                self.registers[regop.target] = self.registers[regop.source]
+                self.registers[regop.target].set(self.registers[regop.source].get_last())
 
     def gather_matches(self, word: Sequence[E]) -> dict[str, list[str]]:
         matches = defaultdict(list)
+        print(self.registers, self.final_registers, self.named_groups_to_tags)
         for name, (start, end) in self.named_groups_to_tags.items():
-            start_ind = self.registers[self.final_registers[start]]
-            end_ind = self.registers[self.final_registers[end]]
-            # for start_id, end_id in zip(...):
-            if start_ind is not None and end_ind is not None:
-                matches[name].append(word[start_ind: end_ind])
-            else:
-                matches[name].append(None)
+            start_indices = self.registers[self.final_registers[start]].get_all()
+            end_indices = self.registers[self.final_registers[end]].get_all()
+            for start_ind, end_ind in zip(start_indices, end_indices):
+                if start_ind is not None and end_ind is not None:
+                    matches[name].append(word[start_ind: end_ind])
+                else:
+                    matches[name].append(None)
         return dict(matches)
 
-    def simulate(self, word: Sequence[E]) -> tuple[bool, dict[str, list[str]]]:
+    def simulate(self, word: Sequence[E]) -> dict[str, list[str]] | None:
         state = self.initial_state
-        self.registers = [None] * self.register_count
+        for reg in self.registers:
+            reg.clear()
 
         for i, symbol in enumerate(word):
             res = self.transition_function.get((state, symbol))
             if res is None:
-                return False, {}
+                # print(state, "no transitions", symbol)
+                return None
 
+            prev = state
             state, regops = res
+            # print(prev, "->", state)
             self.execute_regops(i, regops)
 
         if state not in self.final_states:
-            return False, {}
+            # print(state, "not a final state", self.final_states)
+            return None
 
         regops = self.final_function.get(state)
         if regops is not None:
             self.execute_regops(len(word), regops)
 
-        print(self.registers)
-        return True, self.gather_matches(word)
+        # print(self.registers)
+        return self.gather_matches(word)
