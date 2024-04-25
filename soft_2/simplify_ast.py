@@ -79,7 +79,7 @@ NGroup2Tags = dict[str, tuple[AnyTag, AnyTag]]
 
 
 @dataclass
-class ExpandAst(Visitor):
+class SimplifyAst(Visitor):
     named_groups_to_tags: NGroup2Tags = field(default_factory=dict)
     next_tag: Tag = 0
     ast_length: AstLength = field(default_factory=AstLength)

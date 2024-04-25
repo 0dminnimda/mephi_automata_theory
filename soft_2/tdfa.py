@@ -6,7 +6,7 @@ from collections import deque, defaultdict
 from copy import deepcopy
 from pprint import pprint
 from pathlib import Path
-from expand_ast import NGroup2Tags
+from simplify_ast import NGroup2Tags
 from tnfa import TNFA, OrdMapEpsTrans, MapSymTrans, Tag, AnyTag, FixedTag, Priority
 from enum import Enum, auto
 import tnfa

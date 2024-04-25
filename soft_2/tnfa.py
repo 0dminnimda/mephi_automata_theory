@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from typing import TypeVar, Generic, Sequence, NamedTuple
 from collections import deque, defaultdict
 from pathlib import Path
-from expand_ast import Visitor, Tag, FixedTag, AnyTag, NGroup2Tags, ExpandAst
+from simplify_ast import Visitor, Tag, FixedTag, AnyTag, NGroup2Tags, SimplifyAst
 
 from copy import deepcopy
 
@@ -282,7 +282,7 @@ class Ast2Tnfa(Visitor):
 
     def reset(self):
         self.next_state: State = 0
-        self.expand_ast = ExpandAst()
+        self.expand_ast = SimplifyAst()
 
     def get_next_state(self):
         self.next_state += 1
