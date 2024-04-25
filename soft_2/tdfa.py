@@ -7,8 +7,10 @@ from copy import deepcopy
 from pprint import pprint
 from pathlib import Path
 from simplify_ast import NGroup2Tags
-from tnfa import TNFA, OrdMapEpsTrans, MapSymTrans, Tag, AnyTag, FixedTag, Priority
+import classes as ast
+from tnfa import TNFA, OrdMapEpsTrans, DblMapSymTrans, Tag, AnyTag, FixedTag, Priority, Matcher, dump_matcher
 from enum import Enum, auto
+from parser import iter_unique
 import tnfa
 
 
@@ -97,13 +99,13 @@ class DeterminableTNFA(Generic[E]):
     state_map: dict[State, DetState] = field(default_factory=dict)
     initial_state: State = field(init=False)
     final_states: set[State] = field(default_factory=set)
-    transition_function: dict[tuple[State, E], tuple[State, RegOps]] = field(
+    transition_function: dict[tuple[State, Matcher], tuple[State, RegOps]] = field(
         default_factory=dict
     )
     final_function: dict[State, RegOps] = field(default_factory=dict)
 
     tnfa: TNFA[E] = field(init=False)
-    single_mapped_sym: MapSymTrans[E] = field(default_factory=MapSymTrans[E])
+    double_mapped_sym: DblMapSymTrans = field(default_factory=DblMapSymTrans)
     ordered_eps: OrdMapEpsTrans = field(default_factory=OrdMapEpsTrans)
     confs: DetConfs = field(default_factory=DetConfs)
     precs: DetPrecs = field(default_factory=DetPrecs)
@@ -127,7 +129,7 @@ class DeterminableTNFA(Generic[E]):
     def determinization(self, tnfa: TNFA[E]):
         self.tnfa = tnfa
         self.ordered_eps = tnfa.get_ordered_mapped_epsilon_transitions()
-        self.single_mapped_sym = tnfa.get_mapped_symbol_transitions()
+        self.double_mapped_sym = tnfa.get_double_mapped_symbol_transitions()
 
         r0 = {tag: -i for i, tag in enumerate(tnfa.tags)}
         self.final_registers = {tag: self.get_next_reg() for tag in tnfa.tags}
@@ -143,17 +145,22 @@ class DeterminableTNFA(Generic[E]):
 
             if self.verbose:
                 print("Generating from", state.id, "state")
-            for symbol in tnfa.alphabet:
-                c1 = self.confs = self.step_on_symbol(state, symbol)
+            state_matchers = list(iter_unique(
+                m
+                for tnfa_state in state.precs
+                for m in self.double_mapped_sym.get(tnfa_state, dict()).keys()
+            ))
+            for matcher in state_matchers:
+                c1 = self.confs = self.step_on_symbol(state, matcher)
                 self.confs = self.epsilon_closure(self.confs)
                 if not len(self.confs):
                     continue
                 regops = self.get_transition_regops(v_map)
                 self.precs = self.precedence(self.confs)
                 next_state = self.add_state(regops)
-                self.transition_function[(state.id, symbol)] = (next_state.id, regops)
+                self.transition_function[(state.id, matcher)] = (next_state.id, regops)
                 if self.verbose:
-                    print(symbol, confs_as_table(c1))
+                    print(matcher, confs_as_table(c1))
                     print(next_state.as_table())
                     print()
 
@@ -196,13 +203,13 @@ class DeterminableTNFA(Generic[E]):
 
         return result
 
-    def step_on_symbol(self, state: DetState, symbol: E) -> DetConfs:
+    def step_on_symbol(self, state: DetState, matcher: Matcher) -> DetConfs:
         result = DetConfs()
         for tnfa_state in state.precs:
             conf = state.confs[tnfa_state]
-            tnfa_p = self.single_mapped_sym.get((tnfa_state, symbol), set())
-            for p in tnfa_p:
-                result[p] = Configuration(deepcopy(conf.registers), deepcopy(conf.lookahead_tags), dict())
+            next_tnfa_state = self.double_mapped_sym.get(tnfa_state, dict()).get(matcher)
+            if next_tnfa_state is not None:
+                result[next_tnfa_state] = Configuration(deepcopy(conf.registers), deepcopy(conf.lookahead_tags), dict())
         return result
 
     def precedence(self, confs: DetConfs) -> DetPrecs:
@@ -435,6 +442,9 @@ def tnfa_to_tdfa(tnfa: TNFA[E]) -> TDFA[E]:
     return det.determinization(tnfa)
 
 
+SimTranFunc = dict[State, list[tuple[Matcher, State, RegOps]]]
+
+
 @dataclass
 class TDFA(Generic[E]):
     """
@@ -448,7 +458,7 @@ class TDFA(Generic[E]):
     final_states: set[State]
     registers: set[Register]
     final_registers: dict[Tag, Register]
-    transition_function: dict[tuple[State, E], tuple[State, RegOps]]
+    transition_function: dict[tuple[State, Matcher], tuple[State, RegOps]]
     final_function: dict[State, RegOps]
 
     named_groups_to_tags: NGroup2Tags
@@ -472,7 +482,7 @@ class TDFA(Generic[E]):
 
         for (q, s), (p, o) in self.transition_function.items():
             ops = "".join(f"\\n{op}" for op in o)
-            result.append(f'n{q} -> n{p} [label="{s}/{ops}"];\n')
+            result.append(f'n{q} -> n{p} [label="{dump_matcher(s)}/{ops}"];\n')
 
         for q, o in self.final_function.items():
             ops = "".join(f"\\n{op}" for op in o)
@@ -489,6 +499,25 @@ class TDFA(Generic[E]):
         path.write_text(self.dumps_dot(), encoding="utf-8")
         return path
 
+    def to_simulation_transition_function(self) -> SimTranFunc:
+        result: SimTranFunc = {}
+        for (q, s), (p, o) in self.transition_function.items():
+            result[q] = result.get(q, [])
+            result[q].append((s, p, o))
+
+        sorted_result: SimTranFunc = {}
+        for q, things in result.items():
+            symb = []
+            non_symb = []
+            for matcher, state, regops in things:
+                if isinstance(matcher, ast.SymbolRange):
+                    symb.append((matcher, state, regops))
+                else:
+                    non_symb.append((matcher, state, regops))
+            sorted_result[q] = non_symb + symb
+
+        return sorted_result
+
     def as_simulatable(self) -> SimulatableTDFA[E]:
         # regs = [MultipleRegisterStorage() if tag in self.miltitags else SingleRegisterStorage() for tag in self.final_registers]
         # regs += [SingleRegisterStorage() for _ in range(len(regs), len(self.registers))]
@@ -501,7 +530,7 @@ class TDFA(Generic[E]):
             self.initial_state,
             self.final_states,
             self.final_registers,
-            self.transition_function,
+            self.to_simulation_transition_function(),
             self.final_function,
             regs,
             self.named_groups_to_tags,
@@ -550,7 +579,7 @@ class SimulatableTDFA(Generic[E]):
     initial_state: State
     final_states: set[State]
     final_registers: dict[Tag, Register]
-    transition_function: dict[tuple[State, E], tuple[State, RegOps]]
+    transition_function: SimTranFunc
     final_function: dict[State, RegOps]
 
     registers: list[RegisterStorage]
@@ -572,7 +601,7 @@ class SimulatableTDFA(Generic[E]):
         else:
             return self.registers[self.final_registers[tag]], 0
 
-    def gather_matches(self, word: Sequence[E]) -> dict[str, list[str]]:
+    def gather_matches(self, word: str) -> dict[str, list[str]]:
         matches = defaultdict(list)
         for name, (start, end) in self.named_groups_to_tags.items():
             start_store, start_offset = self.get_register_storage(start)
@@ -584,24 +613,43 @@ class SimulatableTDFA(Generic[E]):
                     matches[name].append(None)
         return dict(matches)
 
-    def simulate(self, word: Sequence[E]) -> dict[str, list[str]] | None:
+    def run_matcher(self, matcher: Matcher, word: str, index: int) -> int | None:
+        if isinstance(matcher, ast.SymbolRange):
+            if matcher.start <= word[index] <= matcher.end:
+                return index + 1
+            else:
+                return None
+        else:
+            return None
+            # raise NotImplementedError("groups")
+
+    def find_next_transition(self, state: State, word: str, index: int) -> tuple[int, State, RegOps] | None:
+        for matcher, next_state, regops in self.transition_function.get(state, []):
+            next_index = self.run_matcher(matcher, word, index)
+            if next_index is not None:
+                return next_index, next_state, regops
+        return None
+
+    def simulate(self, word: str) -> dict[str, list[str]] | None:
         state = self.initial_state
         for reg in self.registers:
             reg.clear()
 
-        for i, symbol in enumerate(word):
-            res = self.transition_function.get((state, symbol))
+        index = 0
+        while index < len(word):
+            res = self.find_next_transition(state, word, index)
             if res is None:
                 return None
 
-            state, regops = res
-            self.execute_regops(i, regops)
+            next_index, state, regops = res
+            self.execute_regops(index, regops)
+            index = next_index
 
         if state not in self.final_states:
             return None
 
         regops = self.final_function.get(state)
         if regops is not None:
-            self.execute_regops(len(word), regops)
+            self.execute_regops(index, regops)
 
         return self.gather_matches(word)

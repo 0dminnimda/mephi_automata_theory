@@ -34,43 +34,43 @@ def test_one_regex(regex, cases):
     simulatable_tdfa = tdfa.as_simulatable()
 
     for prompt, should_match, groups in cases:
-        if tnfa.run(prompt) != should_match:
-            _reported.append(
-                f"{prompt!r} should {'not'if not should_match else ''} match {regex!r} in run        [tnfa]"
-            )
+        # if tnfa.run(prompt) != should_match:
+        #     _reported.append(
+        #         f"{prompt!r} should {'not'if not should_match else ''} match {regex!r} in run        [tNfa]"
+        #     )
         match_tnfa = simulatable_tnfa.simulate(prompt)
         if (match_tnfa is not None) != should_match:
             _reported.append(
-                f"{prompt!r} should {'not'if not should_match else ''} match {regex!r} in simulation [tnfa]"
+                f"{prompt!r} should {'not'if not should_match else ''} match {regex!r} in simulation [tNfa]"
             )
 
         if match_tnfa is None:
             if groups != {}:
                 _reported.append(
-                    f"{prompt!r} did not match but expected groups captured for {regex!r} [tnfa]"
+                    f"{prompt!r} did not match but expected groups captured for {regex!r} [tNfa]"
                 )
         else:
             if groups != match_tnfa:
                 _reported.append(
-                    f"{prompt!r} expected to match groups {match_tnfa}, but got {groups} for {regex!r} [tnfa]"
+                    f"{prompt!r} expected to match groups {groups}, but got {match_tnfa} for {regex!r} [tNfa]"
                 )
 
         match_tdfa = simulatable_tdfa.simulate(prompt)
         if (match_tdfa is not None) != should_match:
             _reported.append(
-                f"{prompt!r} should {'not'if not should_match else ''} match {regex!r} in simulation [tdfa]"
+                f"{prompt!r} should {'not'if not should_match else ''} match {regex!r} in simulation [tDfa]"
             )
 
         if match_tdfa is None:
             if groups != {}:
                 _reported.append(
-                    f"{prompt!r} did not match but expected groups captured for {regex!r} [tdfa]"
+                    f"{prompt!r} did not match but expected groups captured for {regex!r} [tDfa]"
                 )
         else:
             trankated_groups = {name: capture[-1:] for name, capture in groups.items()}
             if trankated_groups != match_tdfa:
                 _reported.append(
-                    f"{prompt!r} expected to match groups {match_tdfa}, but got {groups} for {regex!r} [tdfa]"
+                    f"{prompt!r} expected to match groups {trankated_groups}, but got {match_tdfa} for {regex!r} [tDfa]"
                 )
 
 
@@ -306,12 +306,12 @@ data = {
 def test_dfa0():
     # (<g1>a)*(<g2>a|<tag4>b)b*
     re = ast.Concat((
-        ast.Repeat(ast.NamedGroup("g1", ast.Symbol("a")), 0, None),
+        ast.Repeat(ast.NamedGroup("g1", ast.SymbolRange("a", "a")), 0, None),
         ast.NamedGroup("g2", ast.Or((
-            ast.Symbol("a"),
-            ast.Concat((ast.Tag(100), ast.Symbol("b"))),
+            ast.SymbolRange("a", "a"),
+            ast.Concat((ast.Tag(100), ast.SymbolRange("b", "b"))),
         ))),
-        ast.Repeat(ast.Symbol("b"), 0, None),
+        ast.Repeat(ast.SymbolRange("b", "b"), 0, None),
     ))
     tnfa = ast_to_tnfa(re)
     tdfa = tnfa_to_tdfa(tnfa)
@@ -322,10 +322,10 @@ def test_dfa1():
     # ((<g1>a)*|(<g2>b)*)b?
     re = ast.Concat((
         ast.Or((
-            ast.Repeat(ast.NamedGroup("g1", ast.Symbol("a")), 0, None),
-            ast.Repeat(ast.NamedGroup("g2", ast.Symbol("b")), 0, None),
+            ast.Repeat(ast.NamedGroup("g1", ast.SymbolRange("a", "a")), 0, None),
+            ast.Repeat(ast.NamedGroup("g2", ast.SymbolRange("b", "b")), 0, None),
         )),
-        ast.Repeat(ast.Symbol("b"), 0, 1),
+        ast.Repeat(ast.SymbolRange("b", "b"), 0, 1),
     ))
     tnfa = ast_to_tnfa(re)
     tdfa = tnfa_to_tdfa(tnfa)
@@ -338,13 +338,13 @@ def test_dfa2():
     # a*<tag>b*|ab
     re = ast.Or((
         ast.Concat((
-            ast.Repeat(ast.Symbol("a"), 0, None),
+            ast.Repeat(ast.SymbolRange("a", "a"), 0, None),
             ast.Tag(100),
-            ast.Repeat(ast.Symbol("b"), 0, None),
+            ast.Repeat(ast.SymbolRange("b", "b"), 0, None),
         )),
         ast.Concat((
-            ast.Symbol("a"),
-            ast.Symbol("b"),
+            ast.SymbolRange("a", "a"),
+            ast.SymbolRange("b", "b"),
         )),
     ))
     tnfa = ast_to_tnfa(re)

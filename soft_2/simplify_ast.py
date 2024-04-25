@@ -36,7 +36,7 @@ class AstLength(Visitor):
     def visit_Tag(self, node: ast.Tag):
         return 0
 
-    def visit_Symbol(self, node: ast.Symbol):
+    def visit_SymbolRange(self, node: ast.SymbolRange):
         return 1
 
     def visit_Concat(self, node: ast.Concat):
@@ -90,7 +90,7 @@ class SimplifyAst(Visitor):
     def visit_Tag(self, node: ast.Tag):
         return node
 
-    def visit_Symbol(self, node: ast.Symbol):
+    def visit_SymbolRange(self, node: ast.SymbolRange):
         return node
 
     def visit_Concat(self, node: ast.Concat):
