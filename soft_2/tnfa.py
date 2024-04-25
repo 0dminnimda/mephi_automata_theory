@@ -66,7 +66,6 @@ class SymbolTransition(NamedTuple):
 
 OrdMapEpsTrans = dict[State, list[tuple[Tag | None, State]]]
 DblMapSymTrans = dict[State, dict[Matcher, State]]
-MapSymTrans = dict[tuple[State, Matcher], set[State]]
 
 
 @dataclass
@@ -124,13 +123,6 @@ class TNFA(Generic[E]):
     def to_dot_image(self, path: Path | str):
         path = self.dump_dot(path)
         os.system(f"dot -Tpng -Gdpi=300 {path} -o {path}.png")  # coz why not
-
-    def get_mapped_symbol_transitions(self) -> MapSymTrans:
-        mapped_sym = {}
-        for q, s, p in self.symbol_transitions:
-            val = mapped_sym.get((q, s), set())
-            mapped_sym[(q, s)] = val | {p}
-        return mapped_sym
 
     def get_double_mapped_symbol_transitions(self) -> DblMapSymTrans:
         mapped_sym = {}
