@@ -1,7 +1,5 @@
 from dataclasses import dataclass, field, asdict
 from classes import RE, Epsilon, Symbol, Concat, Or, AnyNumberOf, Maybe, Repeat, NamedGroup, NamedGroupReference
-from tnfa import Ast2Tnfa
-from pprint import pprint
 
 
 PIPE = "|"

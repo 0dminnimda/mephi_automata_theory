@@ -7,6 +7,7 @@ from typing import TypeVar, Generic, Sequence, NamedTuple
 from collections import deque, defaultdict
 from pathlib import Path
 import os
+from parser import iter_unique
 
 from copy import deepcopy
 
@@ -270,6 +271,36 @@ class Visitor:
                 f"visit method for node '{type(node).__name__}' is not implemented"
             )
         return visitor(node, *args, **kwargs)
+
+
+@dataclass
+class AstLength(Visitor):
+    cache: dict[ast.RE, int | None] = field(default_factory=dict)
+
+    def visit(self, node):
+        res = self.cache.get(node)
+        if res is not None:
+            return res
+        res = super().visit(node)
+        self.cache[node] = res
+        return res
+
+    def visit_Epsilon(self, node: ast.Epsilon):
+        return 0
+
+    def visit_Symbol(self, node: ast.Symbol):
+        return 1
+
+    def visit_Concat(self, node: ast.Concat):
+        return sum(self.visit(child) for child in node.expressions)
+
+    def visit_Or(self, node: ast.Or):
+        parts = [self.visit(child) for child in node.expressions]
+        unique = sum(1 for _ in iter_unique(parts))
+        if unique != 1:
+            return None
+        return parts[0]
+
 
 
 ALPHABET = set(string.printable)
