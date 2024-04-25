@@ -34,10 +34,6 @@ def test_one_regex(regex, cases):
     simulatable_tdfa = tdfa.as_simulatable()
 
     for prompt, should_match, groups in cases:
-        # if tnfa.run(prompt) != should_match:
-        #     _reported.append(
-        #         f"{prompt!r} should {'not'if not should_match else ''} match {regex!r} in run        [tNfa]"
-        #     )
         match_tnfa = simulatable_tnfa.simulate(prompt)
         if (match_tnfa is not None) != should_match:
             _reported.append(

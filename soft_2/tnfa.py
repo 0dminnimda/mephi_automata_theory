@@ -150,37 +150,6 @@ class TNFA(Generic[E]):
         }
         return ordered_eps
 
-    # def all_transitions(self, mapped_sym, states, symbol):
-    #     syms = (mapped_sym.get(q, dict()).get(symbol) for q in states)
-    #     return {it for it in syms if it is not None}
-
-    # def epsilon_reachable(self, ordered_eps, states: set[State]) -> set[State]:
-    #     stack = deque(states)
-    #     result = set()
-    #     enqueued = set(stack)
-    #     while stack:
-    #         state = stack.pop()
-    #         result.add(state)
-
-    #         for tag, next_state in ordered_eps.get(state, []):
-    #             if next_state not in enqueued:
-    #                 stack.append(next_state)
-    #                 enqueued.add(next_state)
-
-    #     return result
-
-    # def run(self, word: str):
-    #     ordered_eps = self.get_ordered_mapped_epsilon_transitions()
-    #     mapped_sym = self.get_double_mapped_symbol_transitions()
-
-    #     current_states = {self.initial_state}
-    #     for symbol in word:
-    #         full = self.epsilon_reachable(ordered_eps, current_states)
-    #         current_states = self.all_transitions(mapped_sym, full, symbol)
-    #     full = self.epsilon_reachable(ordered_eps, current_states)
-
-    #     return self.final_state in full
-
     def as_simulatable(self):
         return SimulatableTNFA(
             self.get_ordered_mapped_epsilon_transitions(),
