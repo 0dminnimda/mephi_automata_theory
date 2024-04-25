@@ -306,12 +306,12 @@ data = {
 def test_dfa0():
     # (<g1>a)*(<g2>a|<tag4>b)b*
     re = ast.Concat((
-        ast.AnyNumberOf(ast.NamedGroup("g1", ast.Symbol("a"))),
+        ast.Repeat(ast.NamedGroup("g1", ast.Symbol("a")), 0, None),
         ast.NamedGroup("g2", ast.Or((
             ast.Symbol("a"),
             ast.Concat((ast.Tag(100), ast.Symbol("b"))),
         ))),
-        ast.AnyNumberOf(ast.Symbol("b")),
+        ast.Repeat(ast.Symbol("b"), 0, None),
     ))
     tnfa = ast_to_tnfa(re)
     tdfa = tnfa_to_tdfa(tnfa)
@@ -322,10 +322,10 @@ def test_dfa1():
     # ((<g1>a)*|(<g2>b)*)b?
     re = ast.Concat((
         ast.Or((
-            ast.AnyNumberOf(ast.NamedGroup("g1", ast.Symbol("a"))),
-            ast.AnyNumberOf(ast.NamedGroup("g2", ast.Symbol("b"))),
+            ast.Repeat(ast.NamedGroup("g1", ast.Symbol("a")), 0, None),
+            ast.Repeat(ast.NamedGroup("g2", ast.Symbol("b")), 0, None),
         )),
-        ast.Maybe(ast.Symbol("b")),
+        ast.Repeat(ast.Symbol("b"), 0, 1),
     ))
     tnfa = ast_to_tnfa(re)
     tdfa = tnfa_to_tdfa(tnfa)
@@ -338,9 +338,9 @@ def test_dfa2():
     # a*<tag>b*|ab
     re = ast.Or((
         ast.Concat((
-            ast.AnyNumberOf(ast.Symbol("a")),
+            ast.Repeat(ast.Symbol("a"), 0, None),
             ast.Tag(100),
-            ast.AnyNumberOf(ast.Symbol("b")),
+            ast.Repeat(ast.Symbol("b"), 0, None),
         )),
         ast.Concat((
             ast.Symbol("a"),

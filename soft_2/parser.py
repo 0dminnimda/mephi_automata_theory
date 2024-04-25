@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field, asdict
-from classes import RE, Epsilon, Symbol, Concat, Or, AnyNumberOf, Maybe, Repeat, NamedGroup, NamedGroupReference
+from classes import RE, Epsilon, Symbol, Concat, Or, Repeat, NamedGroup, NamedGroupReference
 
 
 PIPE = "|"
@@ -143,9 +143,9 @@ class Parser:
 
         while 1:
             if self.match_and_consume(QUESTION_MARK):
-                expr = Maybe(expr)
+                expr = Repeat(expr, 0, 1)
             elif self.match_and_consume(ELLIPSIS) or self.match_and_consume("..."):
-                expr = AnyNumberOf(expr)
+                expr = Repeat(expr, 0, None)
             elif self.match_and_consume(OPEN_CURLY_BRACKET):
                 min, max = self.parse_inner_repeat()
                 self.match_and_consume_spaces()

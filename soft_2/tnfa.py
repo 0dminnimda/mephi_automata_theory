@@ -452,15 +452,6 @@ class Ast2Tnfa(Visitor):
 
         return prev
 
-    def visit_AnyNumberOf(self, node: ast.AnyNumberOf, state: State):
-        return self.repeat_expr(node.expr, 0, None, state)
-
-    def visit_OneOrMoreOf(self, node: ast.OneOrMoreOf, state: State):
-        return self.repeat_expr(node.expr, 1, None, state)
-
-    def visit_Maybe(self, node: ast.Maybe, state: State):
-        return self.repeat_expr(node.expr, 0, 1, state)
-
     def visit_Repeat(self, node: ast.Repeat, state: State):
         return self.repeat_expr(node.expr, node.min, node.max, state)
 

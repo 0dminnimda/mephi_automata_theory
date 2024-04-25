@@ -27,21 +27,6 @@ class Or(RE):
 
 
 @dataclass(frozen=True)
-class AnyNumberOf(RE):
-    expr: RE
-
-
-@dataclass(frozen=True)
-class OneOrMoreOf(RE):
-    expr: RE
-
-
-@dataclass(frozen=True)
-class Maybe(RE):
-    expr: RE
-
-
-@dataclass(frozen=True)
 class Repeat(RE):
     expr: RE
     min: int
