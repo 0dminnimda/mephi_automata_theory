@@ -24,31 +24,53 @@ def test_one_regex(regex, cases):
     # print(re)
     tnfa = ast_to_tnfa(re)
     # tnfa.dump_dot("tnfa_k.dot")
-    simulatable = tnfa.as_simulatable()
+    simulatable_tnfa = tnfa.as_simulatable()
     # pprint(asdict(tnfa, exclude={"alphabet"}), indent=4, width=200)
     # tdfa = tnfa_to_tdfa(tnfa)
     # pprint(asdict(tdfa, exclude={"alphabet"}), indent=4, width=200)
 
+    tdfa = tnfa_to_tdfa(tnfa)
+    # tdfa.dump_dot("tdfa.dot")
+    simulatable_tdfa = tdfa.as_simulatable()
+
     for prompt, should_match, groups in cases:
         if tnfa.run(prompt) != should_match:
             _reported.append(
-                f"{prompt!r} should {'not'if not should_match else ''} match {regex!r} in run"
+                f"{prompt!r} should {'not'if not should_match else ''} match {regex!r} in run        [tnfa]"
             )
-        match = simulatable.simulate(prompt)
-        if (match is not None) != should_match:
+        match_tnfa = simulatable_tnfa.simulate(prompt)
+        if (match_tnfa is not None) != should_match:
             _reported.append(
-                f"{prompt!r} should {'not'if not should_match else ''} match {regex!r} in simulation"
+                f"{prompt!r} should {'not'if not should_match else ''} match {regex!r} in simulation [tnfa]"
             )
 
-        if match is None:
+        if match_tnfa is None:
             if groups != {}:
                 _reported.append(
-                    f"{prompt!r} did not match but expected groups captured for {regex!r}"
+                    f"{prompt!r} did not match but expected groups captured for {regex!r} [tnfa]"
                 )
         else:
-            if groups != match:
+            if groups != match_tnfa:
                 _reported.append(
-                    f"{prompt!r} expected to match groups {match}, but got {groups} for {regex!r}"
+                    f"{prompt!r} expected to match groups {match_tnfa}, but got {groups} for {regex!r} [tnfa]"
+                )
+
+        match_tdfa = simulatable_tdfa.simulate(prompt)
+        if (match_tdfa is not None) != should_match:
+            _reported.append(
+                f"{prompt!r} should {'not'if not should_match else ''} match {regex!r} in simulation [tdfa]"
+            )
+
+        if match_tdfa is None:
+            if groups != {}:
+                _reported.append(
+                    f"{prompt!r} did not match but expected groups captured for {regex!r} [tdfa]"
+                )
+        else:
+            trankated_groups = {name: capture[-1:] for name, capture in groups.items()}
+            if trankated_groups != match_tdfa:
+                _reported.append(
+                    f"{prompt!r} expected to match groups {match_tdfa}, but got {groups} for {regex!r} [tdfa]"
                 )
 
 
@@ -308,7 +330,8 @@ def test_dfa1():
     tnfa = ast_to_tnfa(re)
     tdfa = tnfa_to_tdfa(tnfa)
     tdfa.dump_dot("tdfa.dot")
-    print(tdfa.as_simulatable().simulate("aaabb"))
+    # print("tnfa", tnfa.as_simulatable().simulate("aaab"))
+    # print("tdfa", tdfa.as_simulatable().simulate("aaab"))
 
 
 def test_dfa2():
@@ -336,5 +359,5 @@ if __name__ == "__main__":
     # test_dfa2()
     # test_dfa0()
     test_dfa1()
-    # test_regexes(data)
+    test_regexes(data)
     print("DONE")
