@@ -275,16 +275,19 @@ class Visitor:
 ALPHABET = set(string.printable)
 
 
-@dataclass
 class Ast2Tnfa(Visitor):
     """
     Augmented Thompson's construction for TNFA
     """
 
-    next_state: State = 0
-    next_tag: Tag = 0
-    named_groups_to_tags: dict[str, tuple[Tag, Tag]] = field(default_factory=dict)
-    found_named_groups: set[str] = field(default_factory=set)
+    def __init__(self):
+        self.reset()
+
+    def reset(self):
+        self.next_state: State = 0
+        self.next_tag: Tag = 0
+        self.named_groups_to_tags = dict[str, tuple[Tag, Tag]]()
+        self.found_named_groups = set[str]()
 
     def get_next_state(self):
         self.next_state += 1
@@ -295,6 +298,7 @@ class Ast2Tnfa(Visitor):
         return self.next_tag
 
     def to_nfa(self, node: ast.RE, initial_state: State = 0) -> TNFA:
+        self.reset()
         self.next_state = initial_state
         tnfa = self.visit(node, initial_state)
         tnfa.named_groups_to_tags = self.named_groups_to_tags
