@@ -234,7 +234,7 @@ class SimulatableTNFA(Generic[E]):
 
     def get_register_storage(self, regs: SimTags, tag: AnyTag) -> tuple[Sequence[int | None], int]:
         if isinstance(tag, FixedTag):
-            return regs[tag.origin], tag.shift
+            return regs[tag.origin], tag.offset
         else:
             return regs[tag], 0
 

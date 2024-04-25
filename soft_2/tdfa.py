@@ -568,7 +568,7 @@ class SimulatableTDFA(Generic[E]):
 
     def get_register_storage(self, tag: AnyTag) -> tuple[RegisterStorage, int]:
         if isinstance(tag, FixedTag):
-            return self.registers[self.final_registers[tag.origin]], tag.shift
+            return self.registers[self.final_registers[tag.origin]], tag.offset
         else:
             return self.registers[self.final_registers[tag]], 0
 

@@ -69,7 +69,7 @@ Tag = int
 @dataclass(frozen=True)
 class FixedTag:
     origin: Tag
-    shift: int
+    offset: int
 
 
 AnyTag = Tag | FixedTag
