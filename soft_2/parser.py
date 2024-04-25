@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field, asdict
-from classes import RE, Epsilon, Symbol, Concat, Or, Repeat, NamedGroup, NamedGroupReference
+from classes import RE, Epsilon, SymbolRange, Concat, Or, Repeat, NamedGroup, NamedGroupReference
 
 
 PIPE = "|"
@@ -254,13 +254,15 @@ class Parser:
         # %meta_symbol%
 
         if self.peek() not in META_CHARS:
-            result = Symbol(self.peek())
+            c = self.peek()
+            result = SymbolRange(c, c)
             self.consume()
             return result
 
         if self.peek() == PERCENT and self.peek(2) == PERCENT:
             self.consume()
-            result = Symbol(self.peek())
+            c = self.peek()
+            result = SymbolRange(c, c)
             self.consume(2)
             return result
 

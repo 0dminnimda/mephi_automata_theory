@@ -7,7 +7,7 @@ from copy import deepcopy
 from pprint import pprint
 from pathlib import Path
 from simplify_ast import NGroup2Tags
-from tnfa import TNFA, OrdMapEpsTrans, MapSymTrans, Tag, AnyTag, FixedTag, Priority
+from tnfa import TNFA, OrdMapEpsTrans, DblMapSymTrans, Tag, AnyTag, FixedTag, Priority, Matcher
 from enum import Enum, auto
 import tnfa
 
@@ -97,13 +97,13 @@ class DeterminableTNFA(Generic[E]):
     state_map: dict[State, DetState] = field(default_factory=dict)
     initial_state: State = field(init=False)
     final_states: set[State] = field(default_factory=set)
-    transition_function: dict[tuple[State, E], tuple[State, RegOps]] = field(
+    transition_function: dict[tuple[State, Matcher], tuple[State, RegOps]] = field(
         default_factory=dict
     )
     final_function: dict[State, RegOps] = field(default_factory=dict)
 
     tnfa: TNFA[E] = field(init=False)
-    single_mapped_sym: MapSymTrans[E] = field(default_factory=MapSymTrans[E])
+    double_mapped_sym: DblMapSymTrans = field(default_factory=DblMapSymTrans)
     ordered_eps: OrdMapEpsTrans = field(default_factory=OrdMapEpsTrans)
     confs: DetConfs = field(default_factory=DetConfs)
     precs: DetPrecs = field(default_factory=DetPrecs)
@@ -127,7 +127,7 @@ class DeterminableTNFA(Generic[E]):
     def determinization(self, tnfa: TNFA[E]):
         self.tnfa = tnfa
         self.ordered_eps = tnfa.get_ordered_mapped_epsilon_transitions()
-        self.single_mapped_sym = tnfa.get_mapped_symbol_transitions()
+        self.double_mapped_sym = tnfa.get_double_mapped_symbol_transitions()
 
         r0 = {tag: -i for i, tag in enumerate(tnfa.tags)}
         self.final_registers = {tag: self.get_next_reg() for tag in tnfa.tags}
@@ -143,6 +143,7 @@ class DeterminableTNFA(Generic[E]):
 
             if self.verbose:
                 print("Generating from", state.id, "state")
+            self.double_mapped_sym[state.id]
             for symbol in tnfa.alphabet:
                 c1 = self.confs = self.step_on_symbol(state, symbol)
                 self.confs = self.epsilon_closure(self.confs)
@@ -200,7 +201,7 @@ class DeterminableTNFA(Generic[E]):
         result = DetConfs()
         for tnfa_state in state.precs:
             conf = state.confs[tnfa_state]
-            tnfa_p = self.single_mapped_sym.get((tnfa_state, symbol), set())
+            tnfa_p = self.double_mapped_sym.get((tnfa_state, symbol), set())
             for p in tnfa_p:
                 result[p] = Configuration(deepcopy(conf.registers), deepcopy(conf.lookahead_tags), dict())
         return result

@@ -12,8 +12,9 @@ class Epsilon(RE):
 
 
 @dataclass(frozen=True)
-class Symbol(RE):
-    value: str
+class SymbolRange(RE):
+    start: str
+    end: str
 
 
 @dataclass(frozen=True)
