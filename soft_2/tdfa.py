@@ -6,7 +6,8 @@ from collections import deque, defaultdict
 from copy import deepcopy
 from pprint import pprint
 from pathlib import Path
-from tnfa import TNFA, OrdMapEpsTrans, MapSymTrans, Tag, Priority
+from expand_ast import NGroup2Tags
+from tnfa import TNFA, OrdMapEpsTrans, MapSymTrans, Tag, AnyTag, FixedTag, Priority
 from enum import Enum, auto
 import tnfa
 
@@ -450,7 +451,7 @@ class TDFA(Generic[E]):
     transition_function: dict[tuple[State, E], tuple[State, RegOps]]
     final_function: dict[State, RegOps]
 
-    named_groups_to_tags: dict[str, tuple[Tag, Tag]]
+    named_groups_to_tags: NGroup2Tags
     miltitags: set[Tag]
 
     def dumps_dot(self) -> str:
@@ -553,7 +554,7 @@ class SimulatableTDFA(Generic[E]):
     final_function: dict[State, RegOps]
 
     registers: list[RegisterStorage]
-    named_groups_to_tags: dict[str, tuple[Tag, Tag]]
+    named_groups_to_tags: NGroup2Tags
 
     def execute_regops(self, index: int, regops: RegOps) -> None:
         for regop in regops:
@@ -565,14 +566,20 @@ class SimulatableTDFA(Generic[E]):
             elif isinstance(regop, CopyOp):
                 self.registers[regop.target].set(self.registers[regop.source].get_last())
 
+    def get_register_storage(self, tag: AnyTag) -> tuple[RegisterStorage, int]:
+        if isinstance(tag, FixedTag):
+            return self.registers[self.final_registers[tag.origin]], tag.shift
+        else:
+            return self.registers[self.final_registers[tag]], 0
+
     def gather_matches(self, word: Sequence[E]) -> dict[str, list[str]]:
         matches = defaultdict(list)
         for name, (start, end) in self.named_groups_to_tags.items():
-            start_indices = self.registers[self.final_registers[start]].get_all()
-            end_indices = self.registers[self.final_registers[end]].get_all()
-            for start_ind, end_ind in zip(start_indices, end_indices):
+            start_store, start_offset = self.get_register_storage(start)
+            end_store, end_offset = self.get_register_storage(end)
+            for start_ind, end_ind in zip(start_store.get_all(), end_store.get_all()):
                 if start_ind is not None and end_ind is not None:
-                    matches[name].append(word[start_ind: end_ind])
+                    matches[name].append(word[start_ind + start_offset: end_ind + end_offset])
                 else:
                     matches[name].append(None)
         return dict(matches)

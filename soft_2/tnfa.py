@@ -1,19 +1,18 @@
 from __future__ import annotations
 
+import os
 import string
 import classes as ast
 from dataclasses import dataclass, field
 from typing import TypeVar, Generic, Sequence, NamedTuple
 from collections import deque, defaultdict
 from pathlib import Path
-import os
-from parser import iter_unique
+from expand_ast import Visitor, Tag, FixedTag, AnyTag, NGroup2Tags, ExpandAst
 
 from copy import deepcopy
 
 
 State = int
-Tag = int
 Priority = int
 E = TypeVar("E")
 
@@ -48,9 +47,8 @@ class EpsilonTransition(NamedTuple):
 
 @dataclass(frozen=True)
 class NamedGroupReference:
-    name: str
-    start_tag: Tag
-    end_tag: Tag
+    start_tag: AnyTag
+    end_tag: AnyTag
 
 
 OrdMapEpsTrans = dict[State, list[tuple[Tag | None, State]]]
@@ -75,7 +73,7 @@ class TNFA(Generic[E]):
     ]  # ∆ - optionally tagged ϵ-transitions with priority
 
     miltitags: set[Tag] = field(default_factory=set)
-    named_groups_to_tags: dict[str, tuple[Tag, Tag]] = field(default_factory=dict)
+    named_groups_to_tags: NGroup2Tags = field(default_factory=NGroup2Tags)
 
     def dumps_dot(self) -> str:
         result = []
@@ -191,7 +189,7 @@ class SimulatableTNFA(Generic[E]):
     mapped_sym: DblMapSymTrans
     initial_state: State
     final_state: State
-    named_groups_to_tags: dict[str, tuple[Tag, Tag]]
+    named_groups_to_tags: NGroup2Tags
     confs: SimConfs
 
     @staticmethod
@@ -234,13 +232,21 @@ class SimulatableTNFA(Generic[E]):
                 result[state] = conf[1]
         return result
 
+    def get_register_storage(self, regs: SimTags, tag: AnyTag) -> tuple[Sequence[int | None], int]:
+        if isinstance(tag, FixedTag):
+            return regs[tag.origin], tag.shift
+        else:
+            return regs[tag], 0
+
     def gather_matches(self, word: str) -> dict[str, list[str]]:
         registers = self.confs[self.final_state]
         matches = defaultdict(list)
         for name, (start, end) in self.named_groups_to_tags.items():
-            for start_id, end_id in zip(registers[start], registers[end]):
+            start_indices, start_offset = self.get_register_storage(registers, start)
+            end_indices, end_offset = self.get_register_storage(registers, end)
+            for start_id, end_id in zip(start_indices, end_indices):
                 if start_id is not None and end_id is not None:
-                    matches[name].append(word[start_id: end_id])
+                    matches[name].append(word[start_id + start_offset: end_id + end_offset])
                 else:
                     matches[name].append(None)
         return dict(matches)
@@ -261,49 +267,9 @@ class SimulatableTNFA(Generic[E]):
         return self.gather_matches(word)
 
 
-@dataclass
-class Visitor:
-    def visit(self, node, *args, **kwargs):
-        method = "visit_" + node.__class__.__name__
-        visitor = getattr(self, method, None)
-        if visitor is None:
-            raise NotImplementedError(
-                f"visit method for node '{type(node).__name__}' is not implemented"
-            )
-        return visitor(node, *args, **kwargs)
-
-
-@dataclass
-class AstLength(Visitor):
-    cache: dict[ast.RE, int | None] = field(default_factory=dict)
-
-    def visit(self, node):
-        res = self.cache.get(node)
-        if res is not None:
-            return res
-        res = super().visit(node)
-        self.cache[node] = res
-        return res
-
-    def visit_Epsilon(self, node: ast.Epsilon):
-        return 0
-
-    def visit_Symbol(self, node: ast.Symbol):
-        return 1
-
-    def visit_Concat(self, node: ast.Concat):
-        return sum(self.visit(child) for child in node.expressions)
-
-    def visit_Or(self, node: ast.Or):
-        parts = [self.visit(child) for child in node.expressions]
-        unique = sum(1 for _ in iter_unique(parts))
-        if unique != 1:
-            return None
-        return parts[0]
-
-
 
 ALPHABET = set(string.printable)
+
 
 
 class Ast2Tnfa(Visitor):
@@ -316,23 +282,17 @@ class Ast2Tnfa(Visitor):
 
     def reset(self):
         self.next_state: State = 0
-        self.next_tag: Tag = 0
-        self.named_groups_to_tags = dict[str, tuple[Tag, Tag]]()
-        self.found_named_groups = set[str]()
+        self.expand_ast = ExpandAst()
 
     def get_next_state(self):
         self.next_state += 1
         return self.next_state
 
-    def get_next_tag(self):
-        self.next_tag += 1
-        return self.next_tag
-
-    def to_nfa(self, node: ast.RE, initial_state: State = 0) -> TNFA:
+    def to_nfa(self, node: ast.RE) -> TNFA:
         self.reset()
-        self.next_state = initial_state
-        tnfa = self.visit(node, initial_state)
-        tnfa.named_groups_to_tags = self.named_groups_to_tags
+        node = self.expand_ast.visit(node)
+        tnfa = self.visit(node, self.next_state)
+        tnfa.named_groups_to_tags = self.expand_ast.named_groups_to_tags
         tnfa.miltitags = set()
         # tnfa.miltitags = set(tnfa.tags)
         return tnfa
@@ -526,27 +486,17 @@ class Ast2Tnfa(Visitor):
 
         assert False, "'repeat' did not match any case"
 
-    def get_named_group_tags(self, name: str):
-        if name in self.named_groups_to_tags:
-            return self.named_groups_to_tags[name]
-
-        start_tag = self.get_next_tag()
-        end_tag = self.get_next_tag()
-        self.named_groups_to_tags[name] = (start_tag, end_tag)
-        return start_tag, end_tag
-
     def visit_NamedGroup(self, node: ast.NamedGroup, state: State):
-        (start_tag, end_tag) = self.get_named_group_tags(node.name)
-        self.found_named_groups.add(node.name)
-
-        return self.visit(
-            ast.Concat((ast.Tag(start_tag), node.expr, ast.Tag(end_tag))), state
-        )
+        assert False, "Ast2Tnfa only accepts expanded ast (got NamedGroup)"
 
     def visit_NamedGroupReference(self, node: ast.NamedGroupReference, state: State):
         state2 = self.get_next_state()
-        (start_tag, end_tag) = self.get_named_group_tags(node.name)
-        sym = NamedGroupReference(node.name, start_tag, end_tag)
+        tags = self.expand_ast.named_groups_to_tags.get(node.name)
+        if tags is None:
+            raise ValueError(f"Named group {node.name} not found, but referenced")
+
+        start_tag, end_tag = tags
+        sym = NamedGroupReference(start_tag, end_tag)
         return TNFA(
             ALPHABET | {sym},
             set(),
