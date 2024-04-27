@@ -97,15 +97,8 @@ class TNFA(Generic[E]):
     def dumps_dot(self) -> str:
         result = []
         result.append("digraph G {\n")
+        result.append("rankdir=LR\n")
         result.append('node [label="", shape=circle, style=filled];\n\n')
-
-        for state in self.states:
-            if state == self.initial_state:
-                result.append(f'n{state} [label="{state}", shape=doublecircle];\n')
-            elif state == self.final_state:
-                result.append(f'n{state} [label="{state}", shape=doublecircle];\n')
-            else:
-                result.append(f'n{state} [label="{state}"];\n')
 
         for source, priority, tag, target in self.epsilon_transitions:
             tag = "ε" if tag is None else tag
@@ -117,6 +110,14 @@ class TNFA(Generic[E]):
             result.append(
                 f'n{source} -> n{target} [label="{dump_matcher(matcher)}"];\n'
             )  # , color=blue
+
+        for state in self.states:
+            if state == self.initial_state:
+                result.append(f'n{state} [label="{state}", shape=doublecircle];\n')
+            elif state == self.final_state:
+                result.append(f'n{state} [label="{state}", shape=doublecircle];\n')
+            else:
+                result.append(f'n{state} [label="{state}"];\n')
 
         result.append("}\n")
 

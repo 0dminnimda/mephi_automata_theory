@@ -527,7 +527,19 @@ class TDFA(Generic[E]):
     def dumps_dot(self) -> str:
         result = []
         result.append("digraph G {\n")
+        result.append("rankdir=LR\n")
         result.append('node [label="", shape=circle, style=filled];\n\n')
+
+        for (q, s), (p, o) in self.transition_function.items():
+            ops = "".join(f"\\n{op}" for op in o)
+            result.append(f'n{q} -> n{p} [label="{dump_matcher(s)}/{ops}"];\n')
+
+        for q, o in self.final_function.items():
+            ops = "".join(f"\\n{op}" for op in o)
+            result.append(
+                f"subgraph {{ rank=same n{q} dr{q} [shape=rect style=dotted fillcolor=transparent label=\"{ops}\"] n{q}:s -> dr{q}:n [style=dotted minlen=0]}}\n"
+                # f'n{q} -> n{q}_fin [label="{ops}"];\n'
+            )
 
         for state in self.states:
             if state.id == self.initial_state:
@@ -539,16 +551,6 @@ class TDFA(Generic[E]):
 
             if state.id in self.final_function:
                 result.append(f'n{state.id}_fin [style = invis];\n')
-
-        for (q, s), (p, o) in self.transition_function.items():
-            ops = "".join(f"\\n{op}" for op in o)
-            result.append(f'n{q} -> n{p} [label="{dump_matcher(s)}/{ops}"];\n')
-
-        for q, o in self.final_function.items():
-            ops = "".join(f"\\n{op}" for op in o)
-            result.append(
-                f'n{q} -> n{q}_fin [label="{ops}"];\n'
-            )
 
         result.append("}\n")
 
