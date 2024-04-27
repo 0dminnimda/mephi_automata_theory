@@ -304,8 +304,8 @@ class Ast2Tnfa(Visitor):
         node = self.expand_ast.visit(node)
         tnfa = self.visit(node, self.next_state)
         tnfa.named_groups_to_tags = self.expand_ast.named_groups_to_tags
-        tnfa.multitags = set()
-        # tnfa.multitags = set(tnfa.tags)
+        # tnfa.multitags = set()
+        tnfa.multitags = set(tnfa.tags)
         return tnfa
 
     def negative_tags_from(self, tnfa: TNFA, state: State):

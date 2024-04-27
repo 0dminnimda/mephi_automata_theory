@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import TypeVar, Generic, Sequence
+from typing import TypeVar, Generic, Sequence, Iterable
 from collections import deque, defaultdict
 from copy import deepcopy
 from pprint import pprint
@@ -138,6 +138,10 @@ TrnDblMapSymTrans = defaultdict[tnfa.State, dict[Matcher, tnfa.State]]
 
 @dataclass
 class DeterminableTNFA(Generic[E]):
+    """
+    Basically Laurikari algorithm
+    """
+
     verbose: bool = False
     states: list[DetState] = field(default_factory=list)
     state_map: dict[State, DetState] = field(default_factory=dict)
@@ -656,7 +660,9 @@ class MultipleRegisterStorage:
         self.values.append(value)
 
     def get_last(self) -> int | None:
-        return self.values[-1]
+        if self.values:
+            return self.values[-1]
+        return None
 
     def get_all(self) -> Sequence[int | None]:
         return self.values
@@ -692,9 +698,11 @@ class SimulatableTDFA(Generic[E]):
                 else:
                     self.registers[regop.target].set(index)
             elif isinstance(regop, CopyOp):
-                value = self.registers[regop.source].get_last()
-                # if value is not None:
-                self.registers[regop.target].set(value)
+                store = self.registers[regop.target]
+                store.clear()
+                for value in self.registers[regop.source].get_all():
+                    # if value is not None:
+                    store.set(value)
         # print(" ", self.registers)
 
     def get_register_storage_from_tag_final(self, tag: AnyTag) -> tuple[RegisterStorage, int]:
@@ -703,11 +711,11 @@ class SimulatableTDFA(Generic[E]):
         else:
             return self.registers[self.final_registers[tag]], 0
 
-    def get_register_storage_from_tag_all(self, tag: AnyTag) -> tuple[list[RegisterStorage], int]:
+    def get_register_storage_from_tag_all(self, tag: AnyTag) -> tuple[Iterable[RegisterStorage], int]:
         if isinstance(tag, FixedTag):
-            return [self.registers[it] for it in self.tag_to_regs[tag.origin]], tag.offset
+            return (self.registers[it] for it in self.tag_to_regs[tag.origin]), tag.offset
         else:
-            return [self.registers[it] for it in self.tag_to_regs[tag]], 0
+            return (self.registers[it] for it in self.tag_to_regs[tag]), 0
 
     # def get_register_storage_from_reg(self, reg: AnyRegister) -> tuple[RegisterStorage, int]:
     #     if isinstance(reg, FixedRegister):
@@ -717,11 +725,14 @@ class SimulatableTDFA(Generic[E]):
 
     def get_one_register_value_from_tag_all(self, tag: AnyTag) -> int | None:
         start_stores, start_offset = self.get_register_storage_from_tag_all(tag)
+        start_ind = None
         for start_store in start_stores:
-            start_ind = start_store.get_last()
-            if start_ind is None:
-                continue
-            return start_ind + start_offset
+            for start_ind in reversed(start_store.get_all()):
+                if start_ind is not None:
+                    break
+
+            if start_ind is not None:
+                return start_ind + start_offset
         return None
 
     def gather_matches(self, word: str) -> dict[str, list[str]]:
