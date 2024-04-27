@@ -234,7 +234,7 @@ class DeterminableTNFA(Generic[E]):
             self.final_function,
             dict(self.tag_to_regs),
             tnfa.named_groups_to_tags,
-            tnfa.miltitags,
+            tnfa.multitags,
         )
 
     def epsilon_closure(self, confs: DetConfs) -> DetConfs:
@@ -350,7 +350,7 @@ class DeterminableTNFA(Generic[E]):
             print("Mapping", regops, reg_to_reg1)
         for conf1, conf2 in zip(state.confs.values(), to_state.confs.values()):
             for tag in self.tnfa.tags:
-                if conf1.lookahead_tags.get(tag) is None or tag in self.tnfa.miltitags:
+                if conf1.lookahead_tags.get(tag) is None or tag in self.tnfa.multitags:
                     i = conf1.registers[tag]
                     j = conf2.registers[tag]
                     m_i = reg_to_reg1.get(i, None)
@@ -423,7 +423,7 @@ class DeterminableTNFA(Generic[E]):
 
     def regop_rhs(self, registers: dict[Tag, Register], hist: bool, tag: Tag) -> RegVal:
         # assume every tag is multi-tag
-        # self.tnfa.miltitags ?
+        # self.tnfa.multitags ?
         # return (registers[tag], hist)
         # FIXME: IDK what this function does
         if hist:
@@ -550,7 +550,7 @@ class TDFA(Generic[E]):
 
     tag_to_regs: dict[Tag, list[Register]]
     named_groups_to_tags: NGroup2Tags
-    miltitags: set[Tag]
+    multitags: set[Tag]
 
     def dumps_dot(self) -> str:
         result = []
@@ -608,10 +608,10 @@ class TDFA(Generic[E]):
         return sorted_result
 
     def as_simulatable(self) -> SimulatableTDFA[E]:
-        # regs = [MultipleRegisterStorage() if tag in self.miltitags else SingleRegisterStorage() for tag in self.final_registers]
+        # regs = [MultipleRegisterStorage() if tag in self.multitags else SingleRegisterStorage() for tag in self.final_registers]
         # regs += [SingleRegisterStorage() for _ in range(len(regs), len(self.registers))]
         regs: list[RegisterStorage]
-        if self.miltitags:
+        if self.multitags:
             regs = [MultipleRegisterStorage() for _ in self.registers]
         else:
             regs = [SingleRegisterStorage() for _ in self.registers]
