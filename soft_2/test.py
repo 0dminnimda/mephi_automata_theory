@@ -63,7 +63,10 @@ def test_one_regex(regex, cases):
                     f"{prompt!r} did not match but expected groups captured for {regex!r} [tDfa]"
                 )
         else:
-            trankated_groups = {name: capture[-1:] for name, capture in groups.items()}
+            trankated_groups = {
+                name: ([None] + [it for it in capture if it is not None])[-1:]
+                for name, capture in groups.items()
+            }
             if trankated_groups != match_tdfa:
                 _reported.append(
                     f"{prompt!r} expected to match groups {trankated_groups}, but got {match_tdfa} for {regex!r} [tDfa]"

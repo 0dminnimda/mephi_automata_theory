@@ -8,7 +8,7 @@ from pprint import pprint
 from pathlib import Path
 from simplify_ast import NGroup2Tags
 import classes as ast
-from tnfa import TNFA, OrdMapEpsTrans, DblMapSymTrans, Tag, AnyTag, FixedTag, Priority, Matcher, dump_matcher, NamedGroupReference
+from tnfa import TNFA, OrdMapEpsTrans, DblMapSymTrans, Tag, AnyTag, FixedTag, Priority, dump_matcher
 from enum import Enum, auto
 from parser import iter_unique
 import tnfa
@@ -56,6 +56,47 @@ DetConfs = dict[tnfa.State, Configuration]
 DetPrecs = list[tnfa.State]
 
 
+@dataclass(frozen=True)
+class FixedRegister:
+    origin: Tag
+    offset: int
+
+
+AnyRegister = Register | FixedRegister
+
+
+def tag2reg(tag: AnyTag, registers: dict[Tag, Register]) -> AnyRegister:
+    if isinstance(tag, FixedTag):
+        return FixedRegister(registers[tag.origin], tag.offset)
+    return registers[tag]
+
+
+@dataclass(frozen=True)
+class NamedGroupReference:
+    start_reg: AnyRegister
+    end_reg: AnyRegister
+
+
+Matcher = ast.SymbolRange | NamedGroupReference
+
+
+def dump_reg(reg: AnyRegister) -> str:
+    if isinstance(reg, FixedRegister):
+        return f"({reg.origin})+{reg.offset}"
+    else:
+        return f"({reg})"
+
+
+def dump_matcher(matcher: Matcher) -> str:
+    if isinstance(matcher, ast.SymbolRange):
+        if matcher.start == matcher.end:
+            return f"{matcher.start}"
+        else:
+            return f"[{matcher.start}-{matcher.end}]"
+    else:
+        return f"ref<{dump_reg(matcher.start_reg)}: {dump_reg(matcher.end_reg)}>"
+
+
 @dataclass(eq=True)
 class DetState:
     id: State = field(compare=False)
@@ -92,6 +133,9 @@ RegOp = SetOp | CopyOp
 RegOps = list[RegOp]
 
 
+TrnDblMapSymTrans = defaultdict[tnfa.State, dict[Matcher, tnfa.State]]
+
+
 @dataclass
 class DeterminableTNFA(Generic[E]):
     verbose: bool = False
@@ -106,6 +150,7 @@ class DeterminableTNFA(Generic[E]):
 
     tnfa: TNFA[E] = field(init=False)
     double_mapped_sym: DblMapSymTrans = field(default_factory=DblMapSymTrans)
+    transformed_double_mapped_sym: TrnDblMapSymTrans = field(init=False)
     ordered_eps: OrdMapEpsTrans = field(default_factory=OrdMapEpsTrans)
     confs: DetConfs = field(default_factory=DetConfs)
     precs: DetPrecs = field(default_factory=DetPrecs)
@@ -141,15 +186,11 @@ class DeterminableTNFA(Generic[E]):
             print(self.state_map[self.initial_state].as_table())
 
         for state in self.states:
-            v_map: dict[tuple[Tag, RegVal], Register] = {}
-
             if self.verbose:
                 print("Generating from", state.id, "state")
-            state_matchers = list(iter_unique(
-                m
-                for tnfa_state in state.precs
-                for m in self.double_mapped_sym.get(tnfa_state, dict()).keys()
-            ))
+
+            v_map: dict[tuple[Tag, RegVal], Register] = {}
+            self.transformed_double_mapped_sym, state_matchers = self.transform_matchers(state)
             for matcher in state_matchers:
                 c1 = self.confs = self.step_on_symbol(state, matcher)
                 self.confs = self.epsilon_closure(self.confs)
@@ -203,11 +244,30 @@ class DeterminableTNFA(Generic[E]):
 
         return result
 
+    def transform_matchers(self, state: DetState) -> tuple[TrnDblMapSymTrans, list[Matcher]]:
+        result = defaultdict(dict)
+        state_matchers = []
+
+        for tnfa_state in state.precs:
+            conf = state.confs[tnfa_state]
+            for matcher, next_tnfa_state in self.double_mapped_sym.get(tnfa_state, dict()).items():
+                if isinstance(matcher, ast.SymbolRange):
+                    pass
+                else:
+                    start_tag = tag2reg(matcher.start_tag, conf.registers)
+                    end_tag = tag2reg(matcher.end_tag, conf.registers)
+                    matcher = NamedGroupReference(start_tag, end_tag)
+
+                state_matchers.append(matcher)
+                result[tnfa_state][matcher] = next_tnfa_state
+
+        return result, list(iter_unique(state_matchers))
+
     def step_on_symbol(self, state: DetState, matcher: Matcher) -> DetConfs:
         result = DetConfs()
         for tnfa_state in state.precs:
             conf = state.confs[tnfa_state]
-            next_tnfa_state = self.double_mapped_sym.get(tnfa_state, dict()).get(matcher)
+            next_tnfa_state = self.transformed_double_mapped_sym.get(tnfa_state, dict()).get(matcher)
             if next_tnfa_state is not None:
                 result[next_tnfa_state] = Configuration(deepcopy(conf.registers), deepcopy(conf.lookahead_tags), dict())
         return result
@@ -518,13 +578,6 @@ class TDFA(Generic[E]):
 
         return sorted_result
 
-    def put_registers_into_group_references(self) -> None:
-        result = dict()
-        for (q, matcher), (p, o) in self.transition_function.items():
-            if isinstance(matcher, NamedGroupReference):
-                self.states[q].confs
-                # matcher.start_tag
-
     def as_simulatable(self) -> SimulatableTDFA[E]:
         # regs = [MultipleRegisterStorage() if tag in self.miltitags else SingleRegisterStorage() for tag in self.final_registers]
         # regs += [SingleRegisterStorage() for _ in range(len(regs), len(self.registers))]
@@ -601,6 +654,7 @@ class SimulatableTDFA(Generic[E]):
     named_groups_to_tags: NGroup2Tags
 
     def execute_regops(self, index: int, regops: RegOps) -> None:
+        # print(self.registers, regops)
         for regop in regops:
             if isinstance(regop, SetOp):
                 if regop.value is RegVal.NOTHING:
@@ -608,19 +662,27 @@ class SimulatableTDFA(Generic[E]):
                 else:
                     self.registers[regop.target].set(index)
             elif isinstance(regop, CopyOp):
-                self.registers[regop.target].set(self.registers[regop.source].get_last())
+                value = self.registers[regop.source].get_last()
+                self.registers[regop.target].set(value)
+        # print(" ", self.registers)
 
-    def get_register_storage(self, tag: AnyTag) -> tuple[RegisterStorage, int]:
+    def get_register_storage_from_tag(self, tag: AnyTag) -> tuple[RegisterStorage, int]:
         if isinstance(tag, FixedTag):
             return self.registers[self.final_registers[tag.origin]], tag.offset
         else:
             return self.registers[self.final_registers[tag]], 0
 
+    def get_register_storage_from_reg(self, reg: AnyRegister) -> tuple[RegisterStorage, int]:
+        if isinstance(reg, FixedRegister):
+            return self.registers[reg.origin], reg.offset
+        else:
+            return self.registers[reg], 0
+
     def gather_matches(self, word: str) -> dict[str, list[str]]:
         matches = defaultdict(list)
         for name, (start, end) in self.named_groups_to_tags.items():
-            start_store, start_offset = self.get_register_storage(start)
-            end_store, end_offset = self.get_register_storage(end)
+            start_store, start_offset = self.get_register_storage_from_tag(start)
+            end_store, end_offset = self.get_register_storage_from_tag(end)
             for start_ind, end_ind in zip(start_store.get_all(), end_store.get_all()):
                 if start_ind is not None and end_ind is not None:
                     matches[name].append(word[start_ind + start_offset: end_ind + end_offset])
@@ -635,21 +697,23 @@ class SimulatableTDFA(Generic[E]):
             else:
                 return None
         else:
-            start_store, start_offset = self.get_register_storage(matcher.start_tag)
-            end_store, end_offset = self.get_register_storage(matcher.end_tag)
-            print(matcher, start_store, start_offset, end_store, end_offset)
-            print(self.registers)
+            # print()
+            start_store, start_offset = self.get_register_storage_from_reg(matcher.start_reg)
+            end_store, end_offset = self.get_register_storage_from_reg(matcher.end_reg)
+            # print(matcher, start_store, start_offset, end_store, end_offset)
+            # print(self.registers)
             start_ind = start_store.get_last()
             end_ind = end_store.get_last()
             if start_ind is None or end_ind is None:
-                print(f"{start_ind=} is None or {end_ind=} is None")
+                # print(f"{start_ind=} is None or {end_ind=} is None")
                 return None
 
             group_match = word[start_ind + start_offset: end_ind + end_offset]
             if word.startswith(group_match, index):
+                # print("got", group_match)
                 return index + len(group_match)
             else:
-                print("not word.startswith(group_match, index)")
+                # print("not word.startswith(group_match, index)")
                 return None
 
     def find_next_transition(self, state: State, word: str, index: int) -> tuple[int, State, RegOps] | None:
