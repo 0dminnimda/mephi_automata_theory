@@ -535,10 +535,9 @@ class TDFA(Generic[E]):
             result.append(f'n{q} -> n{p} [label="{dump_matcher(s)}/{ops}"];\n')
 
         for q, o in self.final_function.items():
-            ops = "".join(f"\\n{op}" for op in o)
+            ops = "".join(f"{op}" for op in o)
             result.append(
                 f"subgraph {{ rank=same n{q} dr{q} [shape=rect style=dotted fillcolor=transparent label=\"{ops}\"] n{q}:s -> dr{q}:n [style=dotted minlen=0]}}\n"
-                # f'n{q} -> n{q}_fin [label="{ops}"];\n'
             )
 
         for state in self.states:
