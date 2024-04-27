@@ -37,7 +37,7 @@ def test_one_regex(regex, cases):
         match_tnfa = simulatable_tnfa.simulate(prompt)
         if (match_tnfa is not None) != should_match:
             _reported.append(
-                f"{prompt!r} should {'not'if not should_match else ''} match {regex!r} in simulation [tNfa]"
+                f"{prompt!r} should {'not ' if not should_match else ''}match {regex!r} in simulation [tNfa]"
             )
         else:
             if match_tnfa is None:
@@ -54,7 +54,7 @@ def test_one_regex(regex, cases):
         match_tdfa = simulatable_tdfa.simulate(prompt)
         if (match_tdfa is not None) != should_match:
             _reported.append(
-                f"{prompt!r} should {'not'if not should_match else ''} match {regex!r} in simulation [tDfa]"
+                f"{prompt!r} should {'not ' if not should_match else ''}match {regex!r} in simulation [tDfa]"
             )
         else:
             if match_tdfa is None:
