@@ -39,38 +39,38 @@ def test_one_regex(regex, cases):
             _reported.append(
                 f"{prompt!r} should {'not'if not should_match else ''} match {regex!r} in simulation [tNfa]"
             )
-
-        if match_tnfa is None:
-            if groups != {}:
-                _reported.append(
-                    f"{prompt!r} did not match but expected groups captured for {regex!r} [tNfa]"
-                )
         else:
-            if groups != match_tnfa:
-                _reported.append(
-                    f"{prompt!r} expected to match groups {groups}, but got {match_tnfa} for {regex!r} [tNfa]"
-                )
+            if match_tnfa is None:
+                if groups != {}:
+                    _reported.append(
+                        f"{prompt!r} did not match but expected groups captured for {regex!r} [tNfa]"
+                    )
+            else:
+                if groups != match_tnfa:
+                    _reported.append(
+                        f"{prompt!r} expected to match groups {groups}, but got {match_tnfa} for {regex!r} [tNfa]"
+                    )
 
         match_tdfa = simulatable_tdfa.simulate(prompt)
         if (match_tdfa is not None) != should_match:
             _reported.append(
                 f"{prompt!r} should {'not'if not should_match else ''} match {regex!r} in simulation [tDfa]"
             )
-
-        if match_tdfa is None:
-            if groups != {}:
-                _reported.append(
-                    f"{prompt!r} did not match but expected groups captured for {regex!r} [tDfa]"
-                )
         else:
-            trankated_groups = {
-                name: ([None] + [it for it in capture if it is not None])[-1:]
-                for name, capture in groups.items()
-            }
-            if trankated_groups != match_tdfa:
-                _reported.append(
-                    f"{prompt!r} expected to match groups {trankated_groups}, but got {match_tdfa} for {regex!r} [tDfa]"
-                )
+            if match_tdfa is None:
+                if groups != {}:
+                    _reported.append(
+                        f"{prompt!r} did not match but expected groups captured for {regex!r} [tDfa]"
+                    )
+            else:
+                trankated_groups = {
+                    name: ([None] + [it for it in capture if it is not None])[-1:]
+                    for name, capture in groups.items()
+                }
+                if trankated_groups != match_tdfa:
+                    _reported.append(
+                        f"{prompt!r} expected to match groups {trankated_groups}, but got {match_tdfa} for {regex!r} [tDfa]"
+                    )
 
 
 def test_regexes(data):
