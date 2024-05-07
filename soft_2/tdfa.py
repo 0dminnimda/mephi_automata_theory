@@ -595,6 +595,44 @@ class TDFA(Generic[E]):
         path.write_text(self.dumps_dot(), encoding="utf-8")
         return path
 
+    @staticmethod
+    def remap_regops(regops: RegOps, mapping: dict[Register, Register]) -> RegOps:
+        result = []
+        setops = {}
+        for regop in regops:
+            if isinstance(regop, SetOp):
+                regop = SetOp(mapping[regop.target], regop.value)
+                ind = setops.get(regop.target)
+                if ind is not None:
+                    if regop.value is RegVal.CURRENT:
+                        result[ind] = regop
+                    continue
+                setops[regop.target] = len(result)
+            else:
+                regop = CopyOp(mapping[regop.target], mapping[regop.source])
+                if regop.target == regop.source:
+                    continue
+            result.append(regop)
+        return result
+
+    def collapse_extra_registers(self):
+        self.registers = set(self.final_registers.values())
+        old_reg_2_new = {}
+        for tag, regs in self.tag_to_regs.items():
+            for reg in regs:
+                old_reg_2_new[reg] = self.final_registers[tag]
+        self.tag_to_regs = {tag: [reg] for tag, reg in self.final_registers.items()}
+
+        transition_function = {}
+        for tup, (state, regops) in self.transition_function.items():
+            transition_function[tup] = (state, self.remap_regops(regops, old_reg_2_new))
+        self.transition_function = transition_function
+
+        final_function = {}
+        for state, regops in self.final_function.items():
+            final_function[state] = self.remap_regops(regops, old_reg_2_new)
+        self.final_function = final_function
+
     def to_simulation_transition_function(self) -> SimTranFunc:
         result: SimTranFunc = {}
         for (q, s), (p, o) in self.transition_function.items():
