@@ -447,12 +447,35 @@ def test_dfa2():
     tdfa.dump_dot("tdfa.dot")
 
 
+def test_dfa3():
+    # b|((<o>a)|\?)f*
+    # re = parse("b|((<gg>a)|%?%){2}?f...")
+    # re = parse("((<gg>a)|%?%|<gg>){2}")
+    # re = parse("(<a>a)...(<b>a|c)c...")
+    re = parse("(%+%?(d)...)?(((%(%|%[%|%{%)?d...(%)%|%]%|%}%)?)...)")
+    # re = ast.Or((
+    #     ast.SymbolRange("b", "b"),
+    #     ast.Concat((
+    #         ast.Or((
+    #             ast.NamedGroup("o", ast.SymbolRange("a", "a")),
+    #             ast.SymbolRange("?", "?"),
+    #         )),
+    #         ast.Repeat(ast.SymbolRange("f", "f"), 0, None),
+    #     ))
+    # ))
+    tnfa = ast_to_tnfa(re)
+    tnfa.dump_dot("tnfa_k.dot")
+    tdfa = tnfa_to_tdfa(tnfa)
+    tdfa.dump_dot("tdfa.dot")
+
+
 # fmt: on
 
 
 if __name__ == "__main__":
     # test_dfa2()
     # test_dfa0()
-    test_dfa1()
+    # test_dfa1()
+    # test_dfa3()
     test_regexes(data)
     print("DONE")
