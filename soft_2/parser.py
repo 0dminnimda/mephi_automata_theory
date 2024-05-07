@@ -130,6 +130,7 @@ class Parser:
         # r?
         # r…
         # r...
+        # r+
         # r{number}
         # r{min,}
         # r{,max}
@@ -146,6 +147,8 @@ class Parser:
                 expr = Repeat(expr, 0, 1)
             elif self.match_and_consume(ELLIPSIS) or self.match_and_consume("..."):
                 expr = Repeat(expr, 0, None)
+            elif self.match_and_consume("+"):
+                expr = Repeat(expr, 1, None)
             elif self.match_and_consume(OPEN_CURLY_BRACKET):
                 min, max = self.parse_inner_repeat()
                 self.match_and_consume_spaces()
