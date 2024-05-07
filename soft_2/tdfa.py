@@ -292,7 +292,10 @@ class DeterminableTNFA(Generic[E]):
         return result
 
     def precedence(self, confs: DetConfs) -> DetPrecs:
-        return list(confs.keys())
+        # We create the nodes in such a way that the nodes
+        # that are should be considered later in leftmost greed
+        # are numerically smaller
+        return sorted(confs.keys())
 
     def add_state(self, regops: RegOps) -> DetState:
         state = DetState(self.get_next_state(), self.confs, self.precs)
