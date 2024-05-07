@@ -14,6 +14,8 @@ OPEN_CURLY_BRACKET = "{"
 CLOSE_CURLY_BRACKET = "}"
 OPEN_ANGLE_BRACKET = "<"
 CLOSE_ANGLE_BRACKET = ">"
+OPEN_SQUARE_BRACKET = "["
+CLOSE_SQUARE_BRACKET = "]"
 META_CHARS = (
     PIPE
     + PERCENT
@@ -25,6 +27,8 @@ META_CHARS = (
     + CLOSE_CURLY_BRACKET
     + OPEN_ANGLE_BRACKET
     + CLOSE_ANGLE_BRACKET
+    + OPEN_SQUARE_BRACKET
+    + CLOSE_SQUARE_BRACKET
 )
 
 
@@ -199,7 +203,8 @@ class Parser:
         return (
             self.parse_named_group()
             or self.parse_grouped_expression()
-            or self.parse_symbol()
+            or self.parse_symbol_set()
+            or self.parse_symbol(META_CHARS)
             or self.parse_group_reference()
         )
 
@@ -257,20 +262,71 @@ class Parser:
 
         return NamedGroupReference(name)
 
-    def parse_symbol(self):
+    def parse_symbol_set(self):
+        # [a]
+        # [ab]
+        # [abc]
+        # ...
+
+        # [a-z]
+        # [a-z0-9]
+        # ...
+
+        # [%-%]
+        # [%]%]
+        # [^...]
+
+        # and any mix of them
+
+        if not self.match_and_consume(OPEN_SQUARE_BRACKET):
+            return None
+
+        MINUS = "-"
+        CARET = "^"
+        META = MINUS + CLOSE_SQUARE_BRACKET
+
+        accept = True
+        ranges = []
+
+        if self.peek() == CARET:
+            self.consume()
+            accept = False
+
+        while 1:
+            symb1 = self.parse_symbol(META, accept)
+            if symb1 is None:
+                break
+
+            if self.peek() == MINUS:
+                self.consume()
+
+                symb2 = self.parse_symbol(META, accept)
+                if symb2 is None:
+                    self.report(f"Expected to get the second part of the symbol range")
+
+                ranges.append(SymbolRange(symb1.start, symb2.end, accept))
+            else:
+                ranges.append(symb1)
+
+        if not self.match_and_consume(CLOSE_SQUARE_BRACKET):
+            self.report(f"Expected '{CLOSE_SQUARE_BRACKET}'")
+
+        return Or(tuple(ranges))
+
+    def parse_symbol(self, meta_chars: str, accept: bool = True):
         # symbol
         # %meta_symbol%
 
         if self.peek() not in META_CHARS:
             c = self.peek()
-            result = SymbolRange(c, c)
+            result = SymbolRange(c, c, accept)
             self.consume()
             return result
 
         if self.peek() == PERCENT and self.peek(2) == PERCENT:
             self.consume()
             c = self.peek()
-            result = SymbolRange(c, c)
+            result = SymbolRange(c, c, accept)
             self.consume(2)
             return result
 

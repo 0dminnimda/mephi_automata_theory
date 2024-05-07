@@ -50,10 +50,16 @@ def dump_tag(tag: AnyTag) -> str:
 
 def dump_matcher(matcher: Matcher) -> str:
     if isinstance(matcher, ast.SymbolRange):
-        if matcher.start == matcher.end:
-            return f"{matcher.start}"
+        if matcher.accept:
+            if matcher.start == matcher.end:
+                return f"{matcher.start}"
+            else:
+                return f"[{matcher.start}-{matcher.end}]"
         else:
-            return f"[{matcher.start}-{matcher.end}]"
+            if matcher.start == matcher.end:
+                return f"[^{matcher.start}]"
+            else:
+                return f"[^{matcher.start}-{matcher.end}]"
     else:
         return f"ref<{dump_tag(matcher.start_tag)}: {dump_tag(matcher.end_tag)}>"
 
@@ -216,10 +222,10 @@ class SimulatableTNFA(Generic[E]):
 
     def run_matcher(self, matcher: Matcher, word: str, index: int) -> int | None:
         if isinstance(matcher, ast.SymbolRange):
-            if matcher.start <= word[index] <= matcher.end:
+            inside = matcher.start <= word[index] <= matcher.end
+            if inside and matcher.accept or not inside and not matcher.accept:
                 return index + 1
-            else:
-                return None
+            return None
         else:
             return None
             # raise NotImplementedError("groups")

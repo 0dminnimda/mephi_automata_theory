@@ -346,6 +346,33 @@ data = {
         ("+a", False, {}),
         ("+b", False, {}),
     ],
+    "[+]": [
+        ("", False, {}),
+        ("+", True, {}),
+        ("++", False, {}),
+        ("a", False, {}),
+        ("b", False, {}),
+        ("+a", False, {}),
+        ("+b", False, {}),
+    ],
+    "[a-z]": [
+        ("", False, {}),
+    ]
+    + [(chr(c), True, {}) for c in range(ord("a"), ord("z"))]
+    + [(chr(c) * 2, False, {}) for c in range(ord("a"), ord("z"))]
+    + [(chr(c), False, {}) for c in range(ord("A"), ord("Z"))]
+    + [(chr(c) * 2, False, {}) for c in range(ord("A"), ord("Z"))]
+    + [(str(i), False, {}) for i in range(10)]
+    + [(str(i)*2, False, {}) for i in range(10)],
+    "[^a-z]": [
+        ("", False, {}),
+    ]
+    + [(chr(c), False, {}) for c in range(ord("a"), ord("z"))]
+    + [(chr(c) * 2, False, {}) for c in range(ord("a"), ord("z"))]
+    + [(chr(c), True, {}) for c in range(ord("A"), ord("Z"))]
+    + [(chr(c) * 2, False, {}) for c in range(ord("A"), ord("Z"))]
+    + [(str(i), True, {}) for i in range(10)]
+    + [(str(i)*2, False, {}) for i in range(10)],
 }
 
 

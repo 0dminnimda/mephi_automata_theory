@@ -842,7 +842,8 @@ class SimulatableTDFA(Generic[E]):
 
     def run_matcher(self, matcher: Matcher, word: str, index: int) -> int | None:
         if isinstance(matcher, ast.SymbolRange):
-            if matcher.start <= word[index] <= matcher.end:
+            inside = matcher.start <= word[index] <= matcher.end
+            if inside and matcher.accept or not inside and not matcher.accept:
                 return index + 1
             else:
                 return None

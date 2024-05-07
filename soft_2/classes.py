@@ -15,6 +15,7 @@ class Epsilon(RE):
 class SymbolRange(RE):
     start: str
     end: str
+    accept: bool = True
 
 
 @dataclass(frozen=True)
