@@ -154,7 +154,7 @@ class Parser:
                 min, max = self.parse_inner_repeat()
                 self.match_and_consume_spaces()
                 if not self.match_and_consume(CLOSE_CURLY_BRACKET):
-                    raise ValueError(f"Expected '}}' at position {self.position}")
+                    raise ValueError(f"Expected '{CLOSE_CURLY_BRACKET}' at position {self.position}")
                 expr = Repeat(expr, min, max)
             else:
                 break
@@ -212,7 +212,7 @@ class Parser:
             raise ValueError(f"Expected name at {self.position}")
 
         if not self.match_and_consume(CLOSE_ANGLE_BRACKET):
-            raise ValueError(f"Expected '>' at {self.position}")
+            raise ValueError(f"Expected '{CLOSE_ANGLE_BRACKET}' at {self.position}")
 
         expr = self.parse_expr()
 
@@ -220,7 +220,7 @@ class Parser:
             expr = Epsilon()
 
         if not self.match_and_consume(CLOSE_ROUND_BRACKET):
-            raise ValueError(f"Expected ')' at {self.position}")
+            raise ValueError(f"Expected '{CLOSE_ROUND_BRACKET}' at {self.position}")
 
         return NamedGroup(name, expr)
 
@@ -233,7 +233,7 @@ class Parser:
         expr = self.parse_expr()
 
         if not self.match_and_consume(CLOSE_ROUND_BRACKET):
-            raise ValueError(f"Expected ')' at {self.position}")
+            raise ValueError(f"Expected '{CLOSE_ROUND_BRACKET}' at {self.position}")
 
         return expr
 
@@ -249,7 +249,7 @@ class Parser:
             raise ValueError(f"Expected name at {self.position}")
 
         if not self.match_and_consume(CLOSE_ANGLE_BRACKET):
-            raise ValueError(f"Expected '>' at {self.position}")
+            raise ValueError(f"Expected '{CLOSE_ANGLE_BRACKET}' at {self.position}")
 
         return NamedGroupReference(name)
 
