@@ -28,6 +28,16 @@ class RegVal(Enum):
             return "n"
         return "p"
 
+    def as_suffix(self) -> str:
+        if self is RegVal.NOTHING:
+            return "↓"  # "V"
+        return "↑"  # "A"
+
+    def evaluate(self, index: int) -> int | None:
+        if self is RegVal.NOTHING:
+            return None
+        return index
+
 
 @dataclass(eq=True)
 class Configuration:
@@ -116,17 +126,22 @@ class SetOp:
     value: RegVal
 
     def __repr__(self) -> str:
-        return f"set({self.target} <= {self.value})"
+        return f"{self.target}{self.value.as_suffix()}"
+
+
+History = RegVal  # actually a list[RegVal], but it's probably fine for now
+RegOpRightHandSide = tuple[Register | RegVal, History | None]
 
 
 @dataclass(unsafe_hash=True)
 class CopyOp:
     target: Register
     source: Register
-    do_append: bool = False
+    history: History | None = None
 
     def __repr__(self) -> str:
-        return f"copy({self.target} <= {self.source})"
+        suff = "" if self.history is None else self.history.as_suffix()
+        return f"{self.target}={self.source}{suff}"
 
 
 RegOp = SetOp | CopyOp
@@ -181,7 +196,7 @@ class DeterminableTNFA(Generic[E]):
         self.ordered_eps = tnfa.get_ordered_mapped_epsilon_transitions()
         self.double_mapped_sym = tnfa.get_double_mapped_symbol_transitions()
 
-        r0 = {tag: -i for i, tag in enumerate(tnfa.tags)}
+        r0 = {tag: self.get_next_reg() for tag in tnfa.tags}
         self.final_registers = {tag: self.get_next_reg() for tag in tnfa.tags}
         for tag, reg in self.final_registers.items():
             self.tag_to_regs[tag].append(reg)
@@ -196,7 +211,7 @@ class DeterminableTNFA(Generic[E]):
             if self.verbose:
                 print("Generating from", state.id, "state")
 
-            v_map: dict[tuple[Tag, RegVal], Register] = {}
+            v_map: dict[tuple[Tag, RegOpRightHandSide], Register] = {}
             self.transformed_double_mapped_sym, state_matchers = self.transform_matchers(state)
             for matcher in state_matchers:
                 c1 = self.confs = self.step_on_symbol(state, matcher)
@@ -379,21 +394,25 @@ class DeterminableTNFA(Generic[E]):
             if regop.target in reg_to_reg1:
                 regops[i].target = reg_to_reg1.pop(regop.target)
 
+        if self.verbose:
+            print("Mapping", regops, reg_to_reg1)
         for j, i in reg_to_reg1.items():
             if j == i:
                 continue
             regops.append(CopyOp(i, j))
 
+        if self.verbose:
+            print("Mapping to sort", regops, reg_to_reg1)
         return topological_sort(regops)
 
     def get_final_regops(self, conf: Configuration) -> RegOps:
         result = []
         for tag in self.tnfa.tags:
             i = self.final_registers[tag]
-            lt = conf.lookahead_tags.get(tag)
+            lt = self.history(conf.lookahead_tags, tag)
             if lt is not None:
                 v = self.regop_rhs(conf.registers, lt, tag)
-                result.append(SetOp(i, v))
+                result.append(self.make_regop_from_rhs(i, v))
             else:
                 j = conf.registers[tag]
                 result.append(CopyOp(i, j))
@@ -401,7 +420,7 @@ class DeterminableTNFA(Generic[E]):
         return result
 
     def get_transition_regops(
-        self, v_map: dict[tuple[Tag, RegVal], Register]
+        self, v_map: dict[tuple[Tag, RegOpRightHandSide], Register]
     ) -> RegOps:
         result = []
         added = set()
@@ -411,7 +430,7 @@ class DeterminableTNFA(Generic[E]):
             print(confs_as_table(self.confs))
         for conf in self.confs.values():
             for tag in self.tnfa.tags:
-                ht = conf.transition_tags.get(tag)
+                ht = self.history(conf.transition_tags, tag)
                 if ht is not None:
                     v = self.regop_rhs(conf.registers, ht, tag)
                     i = v_map.get((tag, v))
@@ -419,7 +438,7 @@ class DeterminableTNFA(Generic[E]):
                         i = v_map[(tag, v)] = self.get_next_reg()
                         self.tag_to_regs[tag].append(i)
                     conf.registers[tag] = i
-                    op = SetOp(i, v)
+                    op = self.make_regop_from_rhs(i, v)
                     if op not in added:
                         result.append(op)
                         added.add(op)
@@ -428,15 +447,31 @@ class DeterminableTNFA(Generic[E]):
             print("get_transition_regops ->", result)
         return result
 
-    def regop_rhs(self, registers: dict[Tag, Register], hist: bool, tag: Tag) -> RegVal:
-        # assume every tag is multi-tag
-        # self.tnfa.multitags ?
-        # return (registers[tag], hist)
-        # FIXME: IDK what this function does
-        if hist:
+    @staticmethod
+    def history(conf_tags: dict[Tag, bool], tag: Tag) -> History | None:
+        val = conf_tags.get(tag)
+        if val is None:
+            return None
+
+        if val:
             return RegVal.CURRENT
         else:
             return RegVal.NOTHING
+
+    def regop_rhs(self, registers: dict[Tag, Register], history: History, tag: Tag) -> RegOpRightHandSide:
+        if tag in self.tnfa.multitags:
+            return registers[tag], history
+        if history:
+            return RegVal.CURRENT, None
+        else:
+            return RegVal.NOTHING, None
+
+    @staticmethod
+    def make_regop_from_rhs(target: Register, rhs: RegOpRightHandSide) -> RegOp:
+        val, hist = rhs
+        if isinstance(val, RegVal):
+            return SetOp(target, val)
+        return CopyOp(target, val, hist)
 
 
 def topological_sort_not_fully_correct(regops: RegOps) -> bool:
@@ -566,11 +601,11 @@ class TDFA(Generic[E]):
         result.append('node [label="", shape=circle, style=filled];\n\n')
 
         for (q, s), (p, o) in self.transition_function.items():
-            ops = "".join(f"\\n{op}" for op in o)
+            ops = "\\n" + " ".join(f"{op}" for op in o)
             result.append(f'n{q} -> n{p} [label="{dump_matcher(s)}/{ops}"];\n')
 
         for q, o in self.final_function.items():
-            ops = "\\n".join(str(op) for op in o)
+            ops = " ".join(str(op) for op in o)
             result.append(
                 f"subgraph {{ rank=same n{q} dr{q} [shape=rect style=dotted fillcolor=transparent label=\"{ops}\"] n{q}:s -> dr{q}:n [style=dotted minlen=0]}}\n"
             )
@@ -709,7 +744,7 @@ class MultipleRegisterStorage:
         return self.values
 
     def clear(self) -> None:
-        self.values.clear()
+        self.values = deque()
 
     def __repr__(self) -> str:
         return f"reg({str(self.values)[6:-1]})"
@@ -734,16 +769,17 @@ class SimulatableTDFA(Generic[E]):
         # print(self.registers, regops)
         for regop in regops:
             if isinstance(regop, SetOp):
-                if regop.value is RegVal.NOTHING:
-                    self.registers[regop.target].set(None)
-                else:
-                    self.registers[regop.target].set(index)
+                self.registers[regop.target].set(regop.value.evaluate(index))
             elif isinstance(regop, CopyOp):
+                gotten = self.registers[regop.source].get_all()
+                # we need to get all becode we store.clear() in case target == source
                 store = self.registers[regop.target]
                 store.clear()
-                for value in self.registers[regop.source].get_all():
+                for value in gotten:
                     # if value is not None:
                     store.set(value)
+                if regop.history is not None:
+                    store.set(regop.history.evaluate(index))
         # print(" ", self.registers)
 
     def get_register_storage_from_tag_final(self, tag: AnyTag) -> tuple[RegisterStorage, int]:
