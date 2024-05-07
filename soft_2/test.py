@@ -337,6 +337,15 @@ data = {
         ("aaaa", True, {}),
         ("aaaaa", True, {}),
     ],
+    "%+%": [
+        ("", False, {}),
+        ("+", True, {}),
+        ("++", False, {}),
+        ("a", False, {}),
+        ("b", False, {}),
+        ("+a", False, {}),
+        ("+b", False, {}),
+    ],
 }
 
 

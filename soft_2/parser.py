@@ -5,6 +5,7 @@ from classes import RE, Epsilon, SymbolRange, Concat, Or, Repeat, NamedGroup, Na
 PIPE = "|"
 PERCENT = "%"
 ELLIPSIS = "…"
+PLUS = "+"
 QUESTION_MARK = "?"
 OPEN_ROUND_BRACKET = "("
 CLOSE_ROUND_BRACKET = ")"
@@ -147,7 +148,7 @@ class Parser:
                 expr = Repeat(expr, 0, 1)
             elif self.match_and_consume(ELLIPSIS) or self.match_and_consume("..."):
                 expr = Repeat(expr, 0, None)
-            elif self.match_and_consume("+"):
+            elif self.match_and_consume(PLUS):
                 expr = Repeat(expr, 1, None)
             elif self.match_and_consume(OPEN_CURLY_BRACKET):
                 min, max = self.parse_inner_repeat()
