@@ -439,7 +439,7 @@ class DeterminableTNFA(Generic[E]):
             return RegVal.NOTHING
 
 
-def topological_sort(regops: RegOps) -> bool:
+def topological_sort_not_fully_correct(regops: RegOps) -> bool:
     set_ops = list[SetOp]()
     other_ops = list[CopyOp]()
 
@@ -483,7 +483,7 @@ def topological_sort(regops: RegOps) -> bool:
     return not nontrivial_cycle
 
 
-def topological_sort_original(regops: RegOps) -> bool:
+def topological_sort(regops: RegOps) -> bool:
     indegree = {}
 
     for regop in regops:
