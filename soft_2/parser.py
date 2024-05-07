@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field, asdict
-from classes import RE, Epsilon, SymbolRange, Concat, Or, Repeat, NamedGroup, NamedGroupReference
+from classes import RE, Epsilon, SymbolRanges, Concat, Or, Repeat, NamedGroup, NamedGroupReference, make_symbol
 from typing import NoReturn
 
 
@@ -262,6 +262,28 @@ class Parser:
 
         return NamedGroupReference(name)
 
+    def _verify_range_operand(self, re: RE) -> str:
+        if not isinstance(re, SymbolRanges):
+            self.report(f"Cannot make symbol range out of non-symbol")
+        if re is ANY_SYMBOL_RE:  # or re is ANY_SYMBOL_RE_INVERSE:
+            self.report(f"Cannot make symbol range out of '{ANY_SYMBOL}'")
+        if len(re.ranges) != 1:
+            self.report(f"Cannot make symbol range out of non-symbol")
+        if re.ranges[0][0] != re.ranges[0][1]:
+            self.report(f"Cannot make symbol range out of non-symbol")
+        return re.ranges[0][0]
+
+    def _verify_symbol_set_operand(self, re: RE) -> tuple[str, str]:
+        if not isinstance(re, SymbolRanges):
+            self.report(f"Cannot make symbol set out of non-symbol")
+        if re is ANY_SYMBOL_RE:  # or re is ANY_SYMBOL_RE_INVERSE:
+            self.report(f"Cannot make symbol set out of '{ANY_SYMBOL}'")
+        if len(re.ranges) != 1:
+            self.report(f"Cannot make symbol set out of non-symbol")
+        if re.ranges[0][0] != re.ranges[0][1]:
+            self.report(f"Cannot make symbol set out of non-symbol")
+        return re.ranges[0]
+
     def parse_symbol_set(self):
         # [a]
         # [ab]
@@ -286,47 +308,54 @@ class Parser:
         META = MINUS + CLOSE_SQUARE_BRACKET
 
         accept = True
-        ranges = []
+        ranges: list[tuple[str, str]] = []
 
         if self.peek() == CARET:
             self.consume()
             accept = False
 
         while 1:
-            symb1 = self.parse_symbol(META, accept)
+            symb1 = self.parse_symbol(META)
             if symb1 is None:
                 break
 
             if self.peek() == MINUS:
                 self.consume()
 
-                symb2 = self.parse_symbol(META, accept)
+                symb2 = self.parse_symbol(META)
                 if symb2 is None:
                     self.report(f"Expected to get the second part of the symbol range")
 
-                ranges.append(SymbolRange(symb1.start, symb2.end, accept))
+                char1 = self._verify_range_operand(symb1)
+                char2 = self._verify_range_operand(symb2)
+
+                ranges.append((char1, char2))
             else:
+                symb1 = self._verify_symbol_set_operand(symb1)
                 ranges.append(symb1)
 
         if not self.match_and_consume(CLOSE_SQUARE_BRACKET):
             self.report(f"Expected '{CLOSE_SQUARE_BRACKET}'")
 
-        return Or(tuple(ranges))
+        if not ranges:
+            self.report(f"Symbol set cannot be empty")
 
-    def parse_symbol(self, meta_chars: str, accept: bool = True):
+        return SymbolRanges(tuple(ranges), accept)
+
+    def parse_symbol(self, meta_chars: str):
         # symbol
         # %meta_symbol%
 
         if self.peek() not in meta_chars:
             c = self.peek()
-            result = SymbolRange(c, c, accept)
+            result = make_symbol(c)
             self.consume()
             return result
 
         if self.peek() == PERCENT and self.peek(2) == PERCENT:
             self.consume()
             c = self.peek()
-            result = SymbolRange(c, c, accept)
+            result = make_symbol(c)
             self.consume(2)
             return result
 

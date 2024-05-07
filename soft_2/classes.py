@@ -12,10 +12,24 @@ class Epsilon(RE):
 
 
 @dataclass(frozen=True)
-class SymbolRange(RE):
-    start: str
-    end: str
+class SymbolRanges(RE):
+    ranges: tuple[tuple[str, str], ...]  # (start, end) pairs
     accept: bool = True
+
+    def matches(self, char: str) -> bool:
+        if self.accept:
+            return any(
+                start <= char <= end
+                for start, end in self.ranges
+            )
+        return all(
+            not (start <= char <= end)
+            for start, end in self.ranges
+        )
+
+
+def make_symbol(s: str) -> SymbolRanges:
+    return SymbolRanges(((s, s),))
 
 
 @dataclass(frozen=True)

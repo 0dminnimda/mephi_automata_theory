@@ -38,7 +38,7 @@ class NamedGroupReference:
     end_tag: AnyTag
 
 
-Matcher = ast.SymbolRange | NamedGroupReference
+Matcher = ast.SymbolRanges | NamedGroupReference
 
 
 def dump_tag(tag: AnyTag) -> str:
@@ -48,18 +48,28 @@ def dump_tag(tag: AnyTag) -> str:
         return f"({tag})"
 
 
+def dump_pair(tag: AnyTag) -> str:
+    if isinstance(tag, FixedTag):
+        return f"({tag.origin})+{tag.offset}"
+    else:
+        return f"({tag})"
+
+
 def dump_matcher(matcher: Matcher) -> str:
-    if isinstance(matcher, ast.SymbolRange):
-        if matcher.accept:
-            if matcher.start == matcher.end:
-                return f"{matcher.start}"
+    if isinstance(matcher, ast.SymbolRanges):
+        pairs = []
+        for start, end in matcher.ranges:
+            if start == end:
+                pairs.append(f"{start}")
             else:
-                return f"[{matcher.start}-{matcher.end}]"
-        else:
-            if matcher.start == matcher.end:
-                return f"[^{matcher.start}]"
-            else:
-                return f"[^{matcher.start}-{matcher.end}]"
+                pairs.append(f"{start}-{end}")
+
+        middle = "".join(pairs)
+        if not matcher.accept:
+            return f"[^{middle}]"
+        if len(matcher.ranges) == 1:
+            return f"{middle}"
+        return f"[{middle}]"
     else:
         return f"ref<{dump_tag(matcher.start_tag)}: {dump_tag(matcher.end_tag)}>"
 
@@ -221,9 +231,8 @@ class SimulatableTNFA(Generic[E]):
         return result
 
     def run_matcher(self, matcher: Matcher, word: str, index: int) -> int | None:
-        if isinstance(matcher, ast.SymbolRange):
-            inside = matcher.start <= word[index] <= matcher.end
-            if inside and matcher.accept or not inside and not matcher.accept:
+        if isinstance(matcher, ast.SymbolRanges):
+            if matcher.matches(word[index]):
                 return index + 1
             return None
         else:
@@ -334,7 +343,7 @@ class Ast2Tnfa(Visitor):
     def visit_Epsilon(self, node: ast.Epsilon, state: State):
         return TNFA(ALPHABET, set(), {state}, state, state, set(), set())
 
-    def visit_SymbolRange(self, node: ast.SymbolRange, state: State):
+    def visit_SymbolRanges(self, node: ast.SymbolRanges, state: State):
         state2 = self.get_next_state()
         return TNFA(
             ALPHABET,

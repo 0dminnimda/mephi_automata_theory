@@ -436,12 +436,12 @@ data = {
 def test_dfa0():
     # (<g1>a)*(<g2>a|<tag4>b)b*
     re = ast.Concat((
-        ast.Repeat(ast.NamedGroup("g1", ast.SymbolRange("a", "a")), 0, None),
+        ast.Repeat(ast.NamedGroup("g1", ast.make_symbol("a")), 0, None),
         ast.NamedGroup("g2", ast.Or((
-            ast.SymbolRange("a", "a"),
-            ast.Concat((ast.Tag(100), ast.SymbolRange("b", "b"))),
+            ast.make_symbol("a"),
+            ast.Concat((ast.Tag(100), ast.make_symbol("b"))),
         ))),
-        ast.Repeat(ast.SymbolRange("b", "b"), 0, None),
+        ast.Repeat(ast.make_symbol("b"), 0, None),
     ))
     tnfa = ast_to_tnfa(re)
     tdfa = tnfa_to_tdfa(tnfa)
@@ -452,10 +452,10 @@ def test_dfa1():
     # ((<g1>a)*|(<g2>b)*)b?
     re = ast.Concat((
         ast.Or((
-            ast.Repeat(ast.NamedGroup("g1", ast.SymbolRange("a", "a")), 0, None),
-            ast.Repeat(ast.NamedGroup("g2", ast.SymbolRange("b", "b")), 0, None),
+            ast.Repeat(ast.NamedGroup("g1", ast.make_symbol("a")), 0, None),
+            ast.Repeat(ast.NamedGroup("g2", ast.make_symbol("b")), 0, None),
         )),
-        ast.Repeat(ast.SymbolRange("b", "b"), 0, 1),
+        ast.Repeat(ast.make_symbol("b"), 0, 1),
     ))
     tnfa = ast_to_tnfa(re)
     tdfa = tnfa_to_tdfa(tnfa)
@@ -468,13 +468,13 @@ def test_dfa2():
     # a*<tag>b*|ab
     re = ast.Or((
         ast.Concat((
-            ast.Repeat(ast.SymbolRange("a", "a"), 0, None),
+            ast.Repeat(ast.make_symbol("a"), 0, None),
             ast.Tag(100),
-            ast.Repeat(ast.SymbolRange("b", "b"), 0, None),
+            ast.Repeat(ast.make_symbol("b"), 0, None),
         )),
         ast.Concat((
-            ast.SymbolRange("a", "a"),
-            ast.SymbolRange("b", "b"),
+            ast.make_symbol("a"),
+            ast.make_symbol("b"),
         )),
     ))
     tnfa = ast_to_tnfa(re)
@@ -489,13 +489,13 @@ def test_dfa3():
     # re = parse("(<a>a)...(<b>a|c)c...")
     re = parse("(%+%?(d)...)?(((%(%|%[%|%{%)?d...(%)%|%]%|%}%)?)...)")
     # re = ast.Or((
-    #     ast.SymbolRange("b", "b"),
+    #     ast.make_symbol("b"),
     #     ast.Concat((
     #         ast.Or((
-    #             ast.NamedGroup("o", ast.SymbolRange("a", "a")),
-    #             ast.SymbolRange("?", "?"),
+    #             ast.NamedGroup("o", ast.make_symbol("a")),
+    #             ast.make_symbol("?"),
     #         )),
-    #         ast.Repeat(ast.SymbolRange("f", "f"), 0, None),
+    #         ast.Repeat(ast.make_symbol("f"), 0, None),
     #     ))
     # ))
     tnfa = ast_to_tnfa(re)

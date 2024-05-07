@@ -284,7 +284,7 @@ class DeterminableTNFA(Generic[E]):
         for tnfa_state in state.precs:
             conf = state.confs[tnfa_state]
             for matcher, next_tnfa_state in self.double_mapped_sym.get(tnfa_state, dict()).items():
-                if isinstance(matcher, ast.SymbolRange):
+                if isinstance(matcher, ast.SymbolRanges):
                     pass
                 else:
                     pass
@@ -683,7 +683,7 @@ class TDFA(Generic[E]):
             symb = []
             non_symb = []
             for matcher, state, regops in things:
-                if isinstance(matcher, ast.SymbolRange):
+                if isinstance(matcher, ast.SymbolRanges):
                     symb.append((matcher, state, regops))
                 else:
                     non_symb.append((matcher, state, regops))
@@ -841,12 +841,10 @@ class SimulatableTDFA(Generic[E]):
         return dict(matches)
 
     def run_matcher(self, matcher: Matcher, word: str, index: int) -> int | None:
-        if isinstance(matcher, ast.SymbolRange):
-            inside = matcher.start <= word[index] <= matcher.end
-            if inside and matcher.accept or not inside and not matcher.accept:
+        if isinstance(matcher, ast.SymbolRanges):
+            if matcher.matches(word[index]):
                 return index + 1
-            else:
-                return None
+            return None
         else:
             # print()
             # start_stores, start_offset = self.get_register_storage_from_tag_all(matcher.start_tag)
