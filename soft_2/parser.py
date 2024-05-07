@@ -317,7 +317,7 @@ class Parser:
         # symbol
         # %meta_symbol%
 
-        if self.peek() not in META_CHARS:
+        if self.peek() not in meta_chars:
             c = self.peek()
             result = SymbolRange(c, c, accept)
             self.consume()
