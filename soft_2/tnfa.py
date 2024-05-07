@@ -98,7 +98,9 @@ class TNFA(Generic[E]):
         result = []
         result.append("digraph G {\n")
         result.append("rankdir=LR\n")
-        result.append('node [label="", shape=circle, style=filled];\n\n')
+        result.append('node [label="", shape=circle, style=filled, fontname=Courier];\n')
+        result.append("edge[arrowhead=vee fontname=Courier]\n")
+        result.append("\n")
 
         for source, priority, tag, target in self.epsilon_transitions:
             tag = "ε" if tag is None else tag

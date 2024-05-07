@@ -598,11 +598,15 @@ class TDFA(Generic[E]):
         result = []
         result.append("digraph G {\n")
         result.append("rankdir=LR\n")
-        result.append('node [label="", shape=circle, style=filled];\n\n')
+        result.append('node [label="", shape=circle, style=filled, fontname=Courier];\n')
+        result.append("edge[arrowhead=vee fontname=Courier]\n")
+        result.append("\n")
 
         for (q, s), (p, o) in self.transition_function.items():
-            ops = "\\n" + " ".join(f"{op}" for op in o)
-            result.append(f'n{q} -> n{p} [label="{dump_matcher(s)}/{ops}"];\n')
+            ops = " ".join(f"{op}" for op in o)
+            if ops:
+                ops = "\\n" + ops
+            result.append(f'n{q} -> n{p} [label="{dump_matcher(s)}{ops}"];\n')
 
         for q, o in self.final_function.items():
             ops = " ".join(str(op) for op in o)
