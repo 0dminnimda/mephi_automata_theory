@@ -9,7 +9,7 @@ bool lex(const char *s) {
         re2c:yyfill:enable = 0;
         re2c:define:YYCTYPE = char;
 
-        number = ((#a"a"){2});
+        number = ((#a("a"|"b"|"c")){3,});
 
         number { return true; }
     */
