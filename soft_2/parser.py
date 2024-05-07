@@ -31,6 +31,20 @@ META_CHARS = (
     + CLOSE_SQUARE_BRACKET
 )
 
+WHITESPACES = (" ", "\t", "\n", "\r", "\f", "\v")
+WORDS = (("a", "z"), ("A", "Z"), ("0", "9"), ("_", "_"))
+
+SPECIAL_ESCAPES = {
+    "d": SymbolRanges((("0", "9"),)),
+    "D": SymbolRanges((("0", "9"),), False),
+    "s": SymbolRanges(tuple((w, w) for w in WHITESPACES)),
+    "S": SymbolRanges(tuple((w, w) for w in WHITESPACES), False),
+    "w": SymbolRanges(tuple((s, e) for s, e in WORDS)),
+    "W": SymbolRanges(tuple((s, e) for s, e in WORDS), False),
+}
+
+ANY_SYMBOL = "*"
+ANY_SYMBOL_RE = SymbolRanges((), False)
 
 def iter_unique(x):
     seen = set()
@@ -343,21 +357,31 @@ class Parser:
         return SymbolRanges(tuple(ranges), accept)
 
     def parse_symbol(self, meta_chars: str):
+        # *
         # symbol
         # %meta_symbol%
+        # %d%
+        # %D%
+        # ...
+
+        if self.peek() == ANY_SYMBOL:
+            self.consume()
+            return ANY_SYMBOL_RE
 
         if self.peek() not in meta_chars:
             c = self.peek()
-            result = make_symbol(c)
             self.consume()
-            return result
+            return make_symbol(c)
 
         if self.peek() == PERCENT and self.peek(2) == PERCENT:
             self.consume()
             c = self.peek()
-            result = make_symbol(c)
             self.consume(2)
-            return result
+
+            special = SPECIAL_ESCAPES.get(c)
+            if special is not None:
+                return special
+            return make_symbol(c)
 
         return None
 

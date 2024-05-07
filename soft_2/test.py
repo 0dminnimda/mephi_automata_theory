@@ -373,6 +373,30 @@ data = {
     + [(chr(c) * 2, False, {}) for c in range(ord("A"), ord("Z"))]
     + [(str(i), True, {}) for i in range(10)]
     + [(str(i)*2, False, {}) for i in range(10)],
+    "%w%": [
+        ("", False, {}),
+        (".", False, {}),
+        (",", False, {}),
+        (" ", False, {}),
+    ]
+    + [(chr(c), True, {}) for c in range(ord("a"), ord("z"))]
+    + [(chr(c) * 2, False, {}) for c in range(ord("a"), ord("z"))]
+    + [(chr(c), True, {}) for c in range(ord("A"), ord("Z"))]
+    + [(chr(c) * 2, False, {}) for c in range(ord("A"), ord("Z"))]
+    + [(str(i), True, {}) for i in range(10)]
+    + [(str(i)*2, False, {}) for i in range(10)],
+    "%W%": [
+        ("", False, {}),
+        (".", True, {}),
+        (",", True, {}),
+        (" ", True, {}),
+    ]
+    + [(chr(c), False, {}) for c in range(ord("a"), ord("z"))]
+    + [(chr(c) * 2, False, {}) for c in range(ord("a"), ord("z"))]
+    + [(chr(c), False, {}) for c in range(ord("A"), ord("Z"))]
+    + [(chr(c) * 2, False, {}) for c in range(ord("A"), ord("Z"))]
+    + [(str(i), False, {}) for i in range(10)]
+    + [(str(i)*2, False, {}) for i in range(10)],
     "[a-bC-D]+": [
         ("", False, {}),
         ("a", True, {}),
@@ -394,6 +418,25 @@ data = {
     ],
     "([^n]|n)+": [
         ("", False, {}),
+        ("a", True, {}),
+        ("b", True, {}),
+        ("C", True, {}),
+        ("D", True, {}),
+        ("ab", True, {}),
+        ("bD", True, {}),
+        ("Ca", True, {}),
+        ("Db", True, {}),
+        ("A", True, {}),
+        ("B", True, {}),
+        ("c", True, {}),
+        ("d", True, {}),
+        ("AC", True, {}),
+        ("BD", True, {}),
+        ("ca", True, {}),
+        ("db", True, {}),
+    ],
+    "*...": [
+        ("", True, {}),
         ("a", True, {}),
         ("b", True, {}),
         ("C", True, {}),
