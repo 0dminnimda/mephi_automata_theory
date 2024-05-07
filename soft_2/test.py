@@ -373,6 +373,25 @@ data = {
     + [(chr(c) * 2, False, {}) for c in range(ord("A"), ord("Z"))]
     + [(str(i), True, {}) for i in range(10)]
     + [(str(i)*2, False, {}) for i in range(10)],
+    "[a-bC-D]+": [
+        ("", False, {}),
+        ("a", True, {}),
+        ("b", True, {}),
+        ("C", True, {}),
+        ("D", True, {}),
+        ("ab", True, {}),
+        ("bD", True, {}),
+        ("Ca", True, {}),
+        ("Db", True, {}),
+        ("A", False, {}),
+        ("B", False, {}),
+        ("c", False, {}),
+        ("d", False, {}),
+        ("AC", False, {}),
+        ("BD", False, {}),
+        ("ca", False, {}),
+        ("db", False, {}),
+    ],
 }
 
 
