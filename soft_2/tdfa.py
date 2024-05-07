@@ -722,8 +722,19 @@ class SingleRegisterStorage:
     def get_last(self) -> int | None:
         return self.value
 
-    def get_all(self) -> Sequence[int | None]:
-        return [self.value]
+    def get_all(self) -> deque[int | None]:
+        return deque([self.value])
+
+    def copy_from(self, other: RegisterStorage) -> None:
+        if isinstance(other, SingleRegisterStorage):
+            self.values = other.value
+            return
+
+        values = other.values
+        if values:
+            self.value = values[-1]
+        else:
+            self.value = None
 
     def clear(self) -> None:
         self.value = None
@@ -744,8 +755,14 @@ class MultipleRegisterStorage:
             return self.values[-1]
         return None
 
-    def get_all(self) -> Sequence[int | None]:
+    def get_all(self) -> deque[int | None]:
         return self.values
+
+    def copy_from(self, other: RegisterStorage) -> None:
+        if isinstance(other, MultipleRegisterStorage):
+            self.values = other.values.copy()
+        else:
+            self.values = deque([other.value])
 
     def clear(self) -> None:
         self.values = deque()
@@ -775,13 +792,8 @@ class SimulatableTDFA(Generic[E]):
             if isinstance(regop, SetOp):
                 self.registers[regop.target].set(regop.value.evaluate(index))
             elif isinstance(regop, CopyOp):
-                gotten = self.registers[regop.source].get_all()
-                # we need to get all becode we store.clear() in case target == source
                 store = self.registers[regop.target]
-                store.clear()
-                for value in gotten:
-                    # if value is not None:
-                    store.set(value)
+                store.copy_from(self.registers[regop.source])
                 if regop.history is not None:
                     store.set(regop.history.evaluate(index))
         # print(" ", self.registers)
