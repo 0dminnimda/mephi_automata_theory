@@ -197,7 +197,7 @@ data = {
         ("?", False, {}),
         ("aa", True, {"g2": ["a"], "g1": ["a"]}),
         ("bb", True, {"g2": ["b"], "g1": [None]}),
-        ("aab", True, {"g2": ["a"], "g1": ["a"]}),
+        ("aab", True, {"g2": ["b"], "g1": ["a", "a"]}),
         ("?a", False, {}),
         ("a?", False, {}),
         ("??", False, {}),
