@@ -272,7 +272,7 @@ class Parser:
 
         return None
 
-    def parse_string_until(self, char: str):
+    def parse_string_until(self, char: str) -> str | None:
         pos = self.position
         while self.peek() and self.peek() != char:
             self.consume()
@@ -281,7 +281,7 @@ class Parser:
             return None
         return self.string[pos : self.position]
 
-    def parse_number(self):
+    def parse_number(self) -> int | None:
         pos = self.position
         while self.peek() and self.peek().isdigit():
             self.consume()
