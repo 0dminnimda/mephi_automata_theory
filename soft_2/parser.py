@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field, asdict
 from classes import RE, Epsilon, SymbolRange, Concat, Or, Repeat, NamedGroup, NamedGroupReference
+from typing import NoReturn
 
 
 PIPE = "|"
@@ -66,6 +67,9 @@ class Parser:
     def match_and_consume_spaces(self):
         while self.string[self.position].isspace():
             self.consume()
+
+    def report(self, message) -> NoReturn:
+        raise ValueError(f"{message} at position {self.position}")
 
     def parse(self, string: str):
         self.string = string
@@ -154,7 +158,7 @@ class Parser:
                 min, max = self.parse_inner_repeat()
                 self.match_and_consume_spaces()
                 if not self.match_and_consume(CLOSE_CURLY_BRACKET):
-                    raise ValueError(f"Expected '{CLOSE_CURLY_BRACKET}' at position {self.position}")
+                    self.report(f"Expected '{CLOSE_CURLY_BRACKET}'")
                 expr = Repeat(expr, min, max)
             else:
                 break
@@ -179,7 +183,7 @@ class Parser:
         self.match_and_consume_spaces()
         count = self.parse_number()
         if count is None:
-            raise ValueError(f"Expected number or comma at position {self.position}")
+            self.report("Expected number or comma")
 
         self.match_and_consume_spaces()
         if self.match_and_consume(","):
@@ -209,10 +213,10 @@ class Parser:
         name = self.parse_string_until(CLOSE_ANGLE_BRACKET)
 
         if name is None:
-            raise ValueError(f"Expected name at {self.position}")
+            self.report("Expected name")
 
         if not self.match_and_consume(CLOSE_ANGLE_BRACKET):
-            raise ValueError(f"Expected '{CLOSE_ANGLE_BRACKET}' at {self.position}")
+            self.report(f"Expected '{CLOSE_ANGLE_BRACKET}'")
 
         expr = self.parse_expr()
 
@@ -220,7 +224,7 @@ class Parser:
             expr = Epsilon()
 
         if not self.match_and_consume(CLOSE_ROUND_BRACKET):
-            raise ValueError(f"Expected '{CLOSE_ROUND_BRACKET}' at {self.position}")
+            self.report(f"Expected '{CLOSE_ROUND_BRACKET}'")
 
         return NamedGroup(name, expr)
 
@@ -233,7 +237,7 @@ class Parser:
         expr = self.parse_expr()
 
         if not self.match_and_consume(CLOSE_ROUND_BRACKET):
-            raise ValueError(f"Expected '{CLOSE_ROUND_BRACKET}' at {self.position}")
+            self.report(f"Expected '{CLOSE_ROUND_BRACKET}'")
 
         return expr
 
@@ -246,10 +250,10 @@ class Parser:
         name = self.parse_string_until(CLOSE_ANGLE_BRACKET)
 
         if name is None:
-            raise ValueError(f"Expected name at {self.position}")
+            self.report("Expected name")
 
         if not self.match_and_consume(CLOSE_ANGLE_BRACKET):
-            raise ValueError(f"Expected '{CLOSE_ANGLE_BRACKET}' at {self.position}")
+            self.report(f"Expected '{CLOSE_ANGLE_BRACKET}'")
 
         return NamedGroupReference(name)
 
