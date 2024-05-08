@@ -354,7 +354,7 @@ class Parser:
         if not ranges:
             self.report(f"Symbol set cannot be empty")
 
-        return SymbolRanges(tuple(ranges), accept)
+        return SymbolRanges(tuple(ranges), accept).with_minimized_ranges()
 
     def parse_symbol(self, meta_chars: str):
         # *
