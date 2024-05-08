@@ -57,6 +57,13 @@ def dump_pair(tag: AnyTag) -> str:
 
 def dump_matcher(matcher: Matcher) -> str:
     if isinstance(matcher, ast.SymbolRanges):
+        if (
+            matcher.accept
+            and len(matcher.ranges) == 1
+            and matcher.ranges[0][0] == matcher.ranges[0][1]
+        ):
+            return f"{matcher.ranges[0][0]}"
+
         pairs = []
         for start, end in matcher.ranges:
             if start == end:
@@ -65,11 +72,9 @@ def dump_matcher(matcher: Matcher) -> str:
                 pairs.append(f"{start}-{end}")
 
         middle = "".join(pairs)
-        if not matcher.accept:
-            return f"[^{middle}]"
-        if len(matcher.ranges) == 1:
-            return f"{middle}"
-        return f"[{middle}]"
+        if matcher.accept:
+            return f"[{middle}]"
+        return f"[^{middle}]"
     else:
         return f"ref<{dump_tag(matcher.start_tag)}: {dump_tag(matcher.end_tag)}>"
 
