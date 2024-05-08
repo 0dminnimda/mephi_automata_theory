@@ -118,27 +118,28 @@ class TNFA(Generic[E]):
         result.append("edge[arrowhead=vee fontname=Courier]\n")
         result.append("\n")
 
+        pad = len(str(max(self.states)))
         trans = []
         for source, priority, tag, target in self.epsilon_transitions:
             tag = "ε" if tag is None else tag
             trans.append(
-                f'n{source} -> n{target} [label="{priority}/{tag}"];\n'
+                f'n{source:0>{pad}} -> n{target:0>{pad}} [label="{priority}/{tag}"];\n'
             )
 
         for source, matcher, target in self.symbol_transitions:
             trans.append(
-                f'n{source} -> n{target} [label="{dump_matcher(matcher)}"];\n'
+                f'n{source:0>{pad}} -> n{target:0>{pad}} [label="{dump_matcher(matcher)}"];\n'
             )
         trans.sort(reverse=True)
         result.extend(trans)
 
         for state in self.states:
             if state == self.initial_state:
-                result.append(f'n{state} [label="{state}", shape=doublecircle];\n')
+                result.append(f'n{state:0>{pad}} [label="{state}", shape=doublecircle];\n')
             elif state == self.final_state:
-                result.append(f'n{state} [label="{state}", shape=doublecircle];\n')
+                result.append(f'n{state:0>{pad}} [label="{state}", shape=doublecircle];\n')
             else:
-                result.append(f'n{state} [label="{state}"];\n')
+                result.append(f'n{state:0>{pad}} [label="{state}"];\n')
 
         result.append("}\n")
 
