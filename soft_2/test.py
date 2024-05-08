@@ -626,6 +626,21 @@ data = {
         ("cc", False, {}),
         ("ee", False, {}),
     ],
+    "(a|b|e)|(a|b|c)|*": [
+        ("", False, {}),
+        ("a", True, {}),
+        ("b", True, {}),
+        ("c", True, {}),
+        ("d", True, {}),
+        ("e", True, {}),
+        ("f", True, {}),
+        ("aa", False, {}),
+        ("bb", False, {}),
+        ("cc", False, {}),
+        ("dd", False, {}),
+        ("ee", False, {}),
+        ("ff", False, {}),
+    ],
 }
 
 

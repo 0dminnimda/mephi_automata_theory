@@ -1,5 +1,17 @@
 from dataclasses import dataclass, field, asdict
-from classes import RE, Epsilon, SymbolRanges, Concat, Or, Repeat, NamedGroup, NamedGroupReference, make_symbol
+from classes import (
+    RE,
+    Epsilon,
+    SymbolRanges,
+    Concat,
+    Or,
+    Repeat,
+    NamedGroup,
+    NamedGroupReference,
+    make_symbol,
+    MIN_UNICODE,
+    MAX_UNICODE,
+)
 from typing import NoReturn
 
 
@@ -44,7 +56,8 @@ SPECIAL_ESCAPES = {
 }
 
 ANY_SYMBOL = "*"
-ANY_SYMBOL_RE = SymbolRanges((), False)
+ANY_SYMBOL_RE = SymbolRanges(((MIN_UNICODE, MAX_UNICODE),))
+
 
 def iter_unique(x):
     seen = set()
