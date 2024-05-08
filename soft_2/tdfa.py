@@ -242,7 +242,6 @@ class DeterminableTNFA(Generic[E]):
             print(self.tag_to_regs)
 
         return TDFA[E](
-            tnfa.alphabet,
             tnfa.tags,
             ordered_states,
             self.initial_state,
@@ -580,7 +579,7 @@ class TDFA(Generic[E]):
     Tagged Deterministic Finite Automaton
     """
 
-    alphabet: set[E] = field(repr=False)
+    # alphabet: set[E] = field(repr=False)  # we don't need that either
     tags: set[Tag]
     states: list[DetState]
     initial_state: State

@@ -102,7 +102,7 @@ class TNFA(Generic[E]):
     Tagged Non-deterministic Finite Automaton
     """
 
-    alphabet: set[E] = field(repr=False)  # Σ
+    # alphabet: set[E] = field(repr=False)  # Σ  - we don't really need that
     tags: set[Tag]  # T
     states: set[State]  # Q
     initial_state: State  # S
@@ -303,11 +303,6 @@ class SimulatableTNFA(Generic[E]):
         return None
 
 
-
-ALPHABET = set(string.printable)
-
-
-
 class Ast2Tnfa(Visitor):
     """
     Augmented Thompson's construction for TNFA
@@ -336,7 +331,6 @@ class Ast2Tnfa(Visitor):
     def negative_tags_from(self, tnfa: TNFA, state: State):
         states = [self.get_next_state() for _ in tnfa.tags] + [state]
         return TNFA(
-            tnfa.alphabet,
             tnfa.tags,
             set(states),
             states[0],
@@ -349,12 +343,11 @@ class Ast2Tnfa(Visitor):
         )
 
     def visit_Epsilon(self, node: ast.Epsilon, state: State):
-        return TNFA(ALPHABET, set(), {state}, state, state, set(), set())
+        return TNFA(set(), {state}, state, state, set(), set())
 
     def visit_SymbolRanges(self, node: ast.SymbolRanges, state: State):
         state2 = self.get_next_state()
         return TNFA(
-            ALPHABET,
             set(),
             {state2, state},
             state2,
@@ -366,7 +359,6 @@ class Ast2Tnfa(Visitor):
     def visit_Tag(self, node: ast.Tag, state: State):
         state2 = self.get_next_state()
         return TNFA(
-            ALPHABET,
             {node.value},
             {state2, state},
             state2,
@@ -384,7 +376,6 @@ class Ast2Tnfa(Visitor):
 
         assert len(tnfas) > 0, "'concatenation' must have at least one expressions"
 
-        alphabet = union((a.alphabet for a in tnfas), set())
         tags = union((a.tags for a in tnfas), set())
         states = union((a.states for a in tnfas), set())
         initial_state = tnfas[0].initial_state
@@ -393,7 +384,6 @@ class Ast2Tnfa(Visitor):
         epsilon_transitions = union((a.epsilon_transitions for a in tnfas), set())
 
         return TNFA(
-            alphabet,
             tags,
             states,
             initial_state,
@@ -411,7 +401,6 @@ class Ast2Tnfa(Visitor):
 
         start = self.get_next_state()
 
-        alphabet = lhs.alphabet | rhs.alphabet
         tags = lhs.tags | rhs.tags
         states = union((a.states for a in tnfas), {start})
         initial_state = start
@@ -430,7 +419,6 @@ class Ast2Tnfa(Visitor):
         )
 
         return TNFA(
-            alphabet,
             tags,
             states,
             initial_state,
@@ -463,7 +451,6 @@ class Ast2Tnfa(Visitor):
             )
             tnfa1 = self.visit(node, tnfa2.initial_state)
             return TNFA(
-                tnfa1.alphabet | tnfa2.alphabet,
                 tnfa1.tags | tnfa2.tags,
                 tnfa1.states | tnfa2.states,
                 tnfa1.initial_state,
@@ -491,7 +478,6 @@ class Ast2Tnfa(Visitor):
                 EpsilonTransition(end1, 2, None, tnfa2.initial_state),
             }
             return TNFA(
-                tnfa1.alphabet | tnfa2.alphabet,
                 tnfa1.tags | tnfa2.tags,
                 tnfa1.states | tnfa2.states,
                 tnfa1.initial_state,
@@ -511,7 +497,6 @@ class Ast2Tnfa(Visitor):
                 EpsilonTransition(end, 2, None, state),
             }
             return TNFA(
-                tnfa.alphabet,
                 tnfa.tags,
                 states,
                 tnfa.initial_state,
@@ -534,7 +519,6 @@ class Ast2Tnfa(Visitor):
         start_tag, end_tag = tags
         sym = NamedGroupReference(start_tag, end_tag)
         return TNFA(
-            ALPHABET | {sym},
             set(),
             {state2, state},
             state2,
