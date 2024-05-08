@@ -1,8 +1,8 @@
 from parser import parse
 from dataclasses import asdict as _asdict
 from pprint import pprint
-from tnfa import ast_to_tnfa
-from tdfa import tnfa_to_tdfa
+from tnfa import ast_to_tnfa, TNFA
+from tdfa import tnfa_to_tdfa, TDFA
 import classes as ast
 from pathlib import Path
 import tdfa
@@ -19,22 +19,12 @@ def asdict(obj, exclude=None):
     return d
 
 
-def test_one_regex(regex, cases):
+def test_one_regex_tnfa(regex, cases, tnfa: TNFA):
     global _total_test_cases
 
-    # print(regex)
-    re = parse(regex)
-    # print(re)
-    tnfa = ast_to_tnfa(re)
-    # tnfa.dump_dot("tnfa_k.dot")
+    if DUMP_DOT:
+        tnfa.dump_dot("tnfa_k.dot")
     simulatable_tnfa = tnfa.as_simulatable()
-    # pprint(asdict(tnfa, exclude={"alphabet"}), indent=4, width=200)
-    # tdfa = tnfa_to_tdfa(tnfa)
-    # pprint(asdict(tdfa, exclude={"alphabet"}), indent=4, width=200)
-
-    tdfa = tnfa_to_tdfa(tnfa)
-    # tdfa.dump_dot("tdfa.dot")
-    simulatable_tdfa = tdfa.as_simulatable()
 
     for prompt, should_match, groups in cases:
         _total_test_cases += 1
@@ -55,6 +45,15 @@ def test_one_regex(regex, cases):
                         f"{prompt!r} expected to match groups {groups}, but got {match_tnfa} for {regex!r} [tNfa]"
                     )
 
+
+def test_one_regex_tdfa(regex, cases, tdfa: TDFA):
+    global _total_test_cases
+
+    if DUMP_DOT:
+        tdfa.dump_dot("tdfa.dot")
+    simulatable_tdfa = tdfa.as_simulatable()
+
+    for prompt, should_match, groups in cases:
         _total_test_cases += 1
         match_tdfa = simulatable_tdfa.simulate(prompt)
         if (match_tdfa is not None) != should_match:
@@ -72,6 +71,17 @@ def test_one_regex(regex, cases):
                     _reported.append(
                         f"{prompt!r} expected to match groups {groups}, but got {match_tdfa} for {regex!r} [tDfa]"
                     )
+
+
+def test_one_regex(regex, cases):
+    re = parse(regex)
+    tnfa = ast_to_tnfa(re)
+    tdfa = tnfa_to_tdfa(tnfa)
+
+    if TEST_TNFA:
+        test_one_regex_tnfa(regex, cases, tnfa)
+    test_one_regex_tdfa(regex, cases, tdfa)
+
 
 
 def test_regexes(data):
@@ -694,6 +704,10 @@ def test_dfa3():
 
 
 # fmt: on
+
+
+TEST_TNFA = True
+DUMP_DOT = True
 
 
 if __name__ == "__main__":
