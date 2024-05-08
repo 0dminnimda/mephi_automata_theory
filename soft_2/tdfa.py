@@ -10,6 +10,7 @@ from simplify_ast import NGroup2Tags
 import classes as ast
 from tnfa import TNFA, OrdMapEpsTrans, DblMapSymTrans, Tag, AnyTag, FixedTag, Matcher, Priority, dump_matcher
 from enum import Enum, auto
+from helpers import split_overlapping_intervals
 from parser import iter_unique
 import tnfa
 
@@ -193,6 +194,9 @@ class DeterminableTNFA(Generic[E]):
 
     def determinization(self, tnfa: TNFA[E]):
         self.tnfa = tnfa
+
+        all_matchers = self.get_all_unique_matchers_and_update_transitions()
+
         self.ordered_eps = tnfa.get_ordered_mapped_epsilon_transitions()
         self.double_mapped_sym = tnfa.get_double_mapped_symbol_transitions()
 
@@ -212,8 +216,8 @@ class DeterminableTNFA(Generic[E]):
                 print("Generating from", state.id, "state")
 
             v_map: dict[tuple[Tag, RegOpRightHandSide], Register] = {}
-            self.transformed_double_mapped_sym, state_matchers = self.transform_matchers(state)
-            for matcher in state_matchers:
+            self.transformed_double_mapped_sym = self.transform_matchers(state)
+            for matcher in all_matchers:
                 c1 = self.confs = self.step_on_symbol(state, matcher)
                 self.confs = self.epsilon_closure(self.confs)
                 if not len(self.confs):
@@ -255,6 +259,33 @@ class DeterminableTNFA(Generic[E]):
             tnfa.multitags,
         )
 
+    def get_all_unique_matchers_and_update_transitions(self) -> list[Matcher]:
+        # 1. All non-symbol-ranges (group matchers) are unique
+        # 2. In the symbol-ranges we have to extract non-overlapping ones,
+        #    for exmaple, if we have [a-d], [a-ho], [e-h] we need to check have [a-d], [e-h], [o]
+
+        symbol_transitions = set()
+        range_matchers = list[tuple[str, str]]()
+        other_matchers = list[Matcher]()
+        for a, matcher, b in self.tnfa.symbol_transitions:
+            if isinstance(matcher, ast.SymbolRanges):
+                matcher = matcher.minimized_as_accepting()
+                range_matchers.extend(matcher.ranges)
+            else:
+                other_matchers.append(matcher)
+            symbol_transitions.add((a, matcher, b))
+        self.tnfa.symbol_transitions = symbol_transitions
+
+        non_overlaping = split_overlapping_intervals(
+            list(ast.SymbolRanges.ranges_as_intervals(range_matchers))
+        )
+        range_matchers = [
+            ast.SymbolRanges((it,), True)
+            for it in ast.SymbolRanges.intervals_as_ranges(non_overlaping)
+        ]
+
+        return range_matchers + other_matchers
+
     def epsilon_closure(self, confs: DetConfs) -> DetConfs:
         stack = deque(confs.items())
         enqueued = set(confs.keys())
@@ -276,9 +307,8 @@ class DeterminableTNFA(Generic[E]):
 
         return result
 
-    def transform_matchers(self, state: DetState) -> tuple[TrnDblMapSymTrans, list[Matcher]]:
+    def transform_matchers(self, state: DetState) -> TrnDblMapSymTrans:
         result = defaultdict(dict)
-        state_matchers = []
 
         for tnfa_state in state.precs:
             conf = state.confs[tnfa_state]
@@ -291,18 +321,27 @@ class DeterminableTNFA(Generic[E]):
                     # end_tag = tag2reg(matcher.end_tag, conf.registers)
                     # matcher = NamedGroupReference(start_tag, end_tag)
 
-                state_matchers.append(matcher)
                 result[tnfa_state][matcher] = next_tnfa_state
 
-        return result, list(iter_unique(state_matchers))
+        return result
+
+    @staticmethod
+    def matcher_can_pass(matcher_base: Matcher, matcher_passing: Matcher) -> bool:
+        if matcher_base is matcher_passing:
+            return True
+
+        if isinstance(matcher_base, ast.SymbolRanges) and isinstance(matcher_passing, ast.SymbolRanges):
+            return matcher_base.covers(matcher_passing)
+
+        return False
 
     def step_on_symbol(self, state: DetState, matcher: Matcher) -> DetConfs:
         result = DetConfs()
         for tnfa_state in state.precs:
             conf = state.confs[tnfa_state]
-            next_tnfa_state = self.transformed_double_mapped_sym.get(tnfa_state, dict()).get(matcher)
-            if next_tnfa_state is not None:
-                result[next_tnfa_state] = Configuration(deepcopy(conf.registers), deepcopy(conf.lookahead_tags), dict())
+            for matcher_base, next_tnfa_state in self.transformed_double_mapped_sym.get(tnfa_state, dict()).items():
+                if self.matcher_can_pass(matcher_base, matcher):
+                    result[next_tnfa_state] = Configuration(deepcopy(conf.registers), deepcopy(conf.lookahead_tags), dict())
         return result
 
     def precedence(self, confs: DetConfs) -> DetPrecs:

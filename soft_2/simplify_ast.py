@@ -105,12 +105,16 @@ class SimplifyAst(Visitor):
 
     def visit_Or(self, node: ast.Or):
         result = []
+        ranges = []
         for child in node.expressions:
             child = self.visit(child)
             if isinstance(child, ast.Or):
                 result.extend(child.expressions)
+            elif isinstance(child, ast.SymbolRanges):
+                ranges.append(child)
             else:
                 result.append(child)
+        result.extend(ast.SymbolRanges.merge(ranges))
         return ast.Or(tuple(result))
 
     def visit_Repeat(self, node: ast.Repeat):
