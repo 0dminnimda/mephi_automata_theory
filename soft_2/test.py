@@ -24,25 +24,25 @@ def test_one_regex_tnfa(regex, cases, tnfa: TNFA):
 
     if DUMP_DOT:
         tnfa.dump_dot("tnfa_k.dot")
-    simulatable_tnfa = tnfa.as_simulatable()
+    sim = tnfa.as_simulatable()
 
     for prompt, should_match, groups in cases:
         _total_test_cases += 1
-        match_tnfa = simulatable_tnfa.simulate(prompt)
-        if (match_tnfa is not None) != should_match:
+        match = sim.simulate(prompt)
+        if (match is not None) != should_match:
             _reported.append(
                 f"{prompt!r} should {'not ' if not should_match else ''}match {regex!r} in simulation [tNfa]"
             )
         else:
-            if match_tnfa is None:
+            if match is None:
                 if groups != {}:
                     _reported.append(
                         f"{prompt!r} did not match but expected groups captured for {regex!r} [tNfa]"
                     )
             else:
-                if groups != match_tnfa:
+                if groups != match:
                     _reported.append(
-                        f"{prompt!r} expected to match groups {groups}, but got {match_tnfa} for {regex!r} [tNfa]"
+                        f"{prompt!r} expected to match groups {groups}, but got {match} for {regex!r} [tNfa]"
                     )
 
 
@@ -51,25 +51,25 @@ def test_one_regex_tdfa(regex, cases, tdfa: TDFA):
 
     if DUMP_DOT:
         tdfa.dump_dot("tdfa.dot")
-    simulatable_tdfa = tdfa.as_simulatable()
+    sim = tdfa.as_simulatable()
 
     for prompt, should_match, groups in cases:
         _total_test_cases += 1
-        match_tdfa = simulatable_tdfa.simulate(prompt)
-        if (match_tdfa is not None) != should_match:
+        match = sim.simulate(prompt)
+        if (match is not None) != should_match:
             _reported.append(
                 f"{prompt!r} should {'not ' if not should_match else ''}match {regex!r} in simulation [tDfa]"
             )
         else:
-            if match_tdfa is None:
+            if match is None:
                 if groups != {}:
                     _reported.append(
                         f"{prompt!r} did not match but expected groups captured for {regex!r} [tDfa]"
                     )
             else:
-                if groups != match_tdfa:
+                if groups != match:
                     _reported.append(
-                        f"{prompt!r} expected to match groups {groups}, but got {match_tdfa} for {regex!r} [tDfa]"
+                        f"{prompt!r} expected to match groups {groups}, but got {match} for {regex!r} [tDfa]"
                     )
 
 
