@@ -228,7 +228,6 @@ class SimulatableTNFA(Generic[E]):
             conf_state, conf = stack.pop()
 
             tag_state_list = self.ordered_eps.get(conf_state, [])
-            # print(conf, tag_state_list)
             for tag, next_state in tag_state_list:
                 if next_state not in enqueued:
                     next_conf = deepcopy(conf)
