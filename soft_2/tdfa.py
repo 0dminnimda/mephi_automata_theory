@@ -8,7 +8,17 @@ from pprint import pprint
 from pathlib import Path
 from simplify_ast import NGroup2Tags
 import classes as ast
-from tnfa import TNFA, OrdMapEpsTrans, DblMapSymTrans, Tag, AnyTag, FixedTag, Matcher, Priority, dump_matcher
+from tnfa import (
+    TNFA,
+    OrdMapEpsTrans,
+    DblMapSymTrans,
+    Tag,
+    AnyTag,
+    FixedTag,
+    Matcher,
+    Priority,
+    dump_matcher,
+)
 from enum import Enum, auto
 from helpers import split_overlapping_intervals
 from parser import iter_unique
@@ -117,7 +127,7 @@ class DetState:
     def as_table(self) -> str:
         first = result = f"\n| TDFA state {self.id} |\n"
         result += confs_as_table(self.confs)
-        result += "-"*len(first) + "\n"
+        result += "-" * len(first) + "\n"
         return result
 
 
@@ -176,7 +186,9 @@ class DeterminableTNFA(Generic[E]):
     precs: DetPrecs = field(default_factory=DetPrecs)
     registers: set[Register] = field(default_factory=set)
     final_registers: dict[Tag, Register] = field(default_factory=dict)
-    tag_to_regs: defaultdict[Tag, list[Register]] = field(default_factory=lambda: defaultdict(list))
+    tag_to_regs: defaultdict[Tag, list[Register]] = field(
+        default_factory=lambda: defaultdict(list)
+    )
     current_reg: Register = -1
     current_state: State = -1
 
@@ -312,7 +324,9 @@ class DeterminableTNFA(Generic[E]):
 
         for tnfa_state in state.precs:
             conf = state.confs[tnfa_state]
-            for matcher, next_tnfa_state in self.double_mapped_sym.get(tnfa_state, dict()).items():
+            for matcher, next_tnfa_state in self.double_mapped_sym.get(
+                tnfa_state, dict()
+            ).items():
                 if isinstance(matcher, ast.SymbolRanges):
                     pass
                 else:
@@ -330,7 +344,9 @@ class DeterminableTNFA(Generic[E]):
         if matcher_base is matcher_passing:
             return True
 
-        if isinstance(matcher_base, ast.SymbolRanges) and isinstance(matcher_passing, ast.SymbolRanges):
+        if isinstance(matcher_base, ast.SymbolRanges) and isinstance(
+            matcher_passing, ast.SymbolRanges
+        ):
             return matcher_base.covers(matcher_passing)
 
         return False
@@ -339,9 +355,13 @@ class DeterminableTNFA(Generic[E]):
         result = DetConfs()
         for tnfa_state in state.precs:
             conf = state.confs[tnfa_state]
-            for matcher_base, next_tnfa_state in self.transformed_double_mapped_sym.get(tnfa_state, dict()).items():
+            for matcher_base, next_tnfa_state in self.transformed_double_mapped_sym.get(
+                tnfa_state, dict()
+            ).items():
                 if self.matcher_can_pass(matcher_base, matcher):
-                    result[next_tnfa_state] = Configuration(deepcopy(conf.registers), deepcopy(conf.lookahead_tags), dict())
+                    result[next_tnfa_state] = Configuration(
+                        deepcopy(conf.registers), deepcopy(conf.lookahead_tags), dict()
+                    )
         return result
 
     def precedence(self, confs: DetConfs) -> DetPrecs:
@@ -418,12 +438,14 @@ class DeterminableTNFA(Generic[E]):
                     if m_i is None and m_j is None:
                         reg_to_reg1[i] = j
                         reg_to_reg2[j] = i
-                    elif (
-                        ((m_i is not None) and (m_i != j))
-                        or ((m_j is not None) and (m_j != i))
+                    elif ((m_i is not None) and (m_i != j)) or (
+                        (m_j is not None) and (m_j != i)
                     ):
                         if self.verbose:
-                            print("    no map", f"coz not bijection {m_i=} != {j=} or {m_j=} != {i=}")
+                            print(
+                                "    no map",
+                                f"coz not bijection {m_i=} != {j=} or {m_j=} != {i=}",
+                            )
                         return False
 
         if self.verbose:
@@ -454,7 +476,7 @@ class DeterminableTNFA(Generic[E]):
             else:
                 j = conf.registers[tag]
                 result.append(CopyOp(i, j))
-        
+
         return result
 
     def get_transition_regops(
@@ -496,7 +518,9 @@ class DeterminableTNFA(Generic[E]):
         else:
             return RegVal.NOTHING
 
-    def regop_rhs(self, registers: dict[Tag, Register], history: History, tag: Tag) -> RegOpRightHandSide:
+    def regop_rhs(
+        self, registers: dict[Tag, Register], history: History, tag: Tag
+    ) -> RegOpRightHandSide:
         if tag in self.tnfa.multitags:
             return registers[tag], history
         if history:
@@ -636,7 +660,9 @@ class TDFA(Generic[E]):
         result = []
         result.append("digraph G {\n")
         result.append("rankdir=LR\n")
-        result.append('node [label="", shape=circle, style=filled, fontname=Courier];\n')
+        result.append(
+            'node [label="", shape=circle, style=filled, fontname=Courier];\n'
+        )
         result.append("edge[arrowhead=vee fontname=Courier]\n")
         result.append("\n")
 
@@ -649,19 +675,23 @@ class TDFA(Generic[E]):
         for q, o in self.final_function.items():
             ops = " ".join(str(op) for op in o)
             result.append(
-                f"subgraph {{ rank=same n{q} dr{q} [shape=rect style=dotted fillcolor=transparent label=\"{ops}\"] n{q}:s -> dr{q}:n [style=dotted minlen=0]}}\n"
+                f'subgraph {{ rank=same n{q} dr{q} [shape=rect style=dotted fillcolor=transparent label="{ops}"] n{q}:s -> dr{q}:n [style=dotted minlen=0]}}\n'
             )
 
         for state in self.states:
             if state.id == self.initial_state:
-                result.append(f'n{state.id} [label="{state.id}", shape=doublecircle];\n')
+                result.append(
+                    f'n{state.id} [label="{state.id}", shape=doublecircle];\n'
+                )
             elif state.id in self.final_states:
-                result.append(f'n{state.id} [label="{state.id}", shape=doublecircle];\n')
+                result.append(
+                    f'n{state.id} [label="{state.id}", shape=doublecircle];\n'
+                )
             else:
                 result.append(f'n{state.id} [label="{state.id}"];\n')
 
             if state.id in self.final_function:
-                result.append(f'n{state.id}_fin [style = invis];\n')
+                result.append(f"n{state.id}_fin [style = invis];\n")
 
         result.append("}\n")
 
@@ -836,15 +866,21 @@ class SimulatableTDFA(Generic[E]):
                     store.set(regop.history.evaluate(index))
         # print(" ", self.registers)
 
-    def get_register_storage_from_tag_final(self, tag: AnyTag) -> tuple[RegisterStorage, int]:
+    def get_register_storage_from_tag_final(
+        self, tag: AnyTag
+    ) -> tuple[RegisterStorage, int]:
         if isinstance(tag, FixedTag):
             return self.registers[self.final_registers[tag.origin]], tag.offset
         else:
             return self.registers[self.final_registers[tag]], 0
 
-    def get_register_storage_from_tag_all(self, tag: AnyTag) -> tuple[Iterable[RegisterStorage], int]:
+    def get_register_storage_from_tag_all(
+        self, tag: AnyTag
+    ) -> tuple[Iterable[RegisterStorage], int]:
         if isinstance(tag, FixedTag):
-            return (self.registers[it] for it in self.tag_to_regs[tag.origin]), tag.offset
+            return (
+                self.registers[it] for it in self.tag_to_regs[tag.origin]
+            ), tag.offset
         else:
             return (self.registers[it] for it in self.tag_to_regs[tag]), 0
 
@@ -873,7 +909,9 @@ class SimulatableTDFA(Generic[E]):
             end_store, end_offset = self.get_register_storage_from_tag_final(end)
             for start_ind, end_ind in zip(start_store.get_all(), end_store.get_all()):
                 if start_ind is not None and end_ind is not None:
-                    matches[name].append(word[start_ind + start_offset: end_ind + end_offset])
+                    matches[name].append(
+                        word[start_ind + start_offset : end_ind + end_offset]
+                    )
                 else:
                     matches[name].append(None)
         return dict(matches)
@@ -898,7 +936,7 @@ class SimulatableTDFA(Generic[E]):
                 # print(f"{start_ind=} is None or {end_ind=} is None")
                 return None
 
-            group_match = word[start_ind: end_ind]
+            group_match = word[start_ind:end_ind]
             if word.startswith(group_match, index):
                 # print("got", group_match)
                 return index + len(group_match)
@@ -906,7 +944,9 @@ class SimulatableTDFA(Generic[E]):
                 # print("not word.startswith(group_match, index)")
                 return None
 
-    def find_next_transition(self, state: State, word: str, index: int) -> tuple[int, State, RegOps] | None:
+    def find_next_transition(
+        self, state: State, word: str, index: int
+    ) -> tuple[int, State, RegOps] | None:
         for matcher, next_state, regops in self.transition_function.get(state, []):
             next_index = self.run_matcher(matcher, word, index)
             if next_index is not None:

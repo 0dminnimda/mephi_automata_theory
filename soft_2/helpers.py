@@ -5,10 +5,8 @@ from typing import TypeVar, Protocol, Any, Sequence
 
 
 class Comparable(Protocol):
-    def __lt__(self, other: Any, /) -> bool:
-        ...
-    def __le__(self, other: Any, /) -> bool:
-        ...
+    def __lt__(self, other: Any, /) -> bool: ...
+    def __le__(self, other: Any, /) -> bool: ...
 
 
 CmpT = TypeVar("CmpT", bound=Comparable, covariant=True)
@@ -34,11 +32,13 @@ def merge_intervals(intervals: list[tuple[CmpT, CmpT]]) -> deque[tuple[CmpT, Cmp
         # else:
         #     stack.append((lstart, lend))
         #     stack.append((start, end))
- 
+
     return stack
 
 
-def split_overlapping_intervals(intervals: list[tuple[CmpT, CmpT]]) -> deque[tuple[CmpT, CmpT]]:
+def split_overlapping_intervals(
+    intervals: list[tuple[CmpT, CmpT]]
+) -> deque[tuple[CmpT, CmpT]]:
     """
     Will return unique non-overlapping intervals, wich will cover all the previously covered points,
     but will be split at the boudaries of all intervals.
@@ -72,12 +72,11 @@ def split_overlapping_intervals(intervals: list[tuple[CmpT, CmpT]]) -> deque[tup
     return result
 
 
-def interval_covers_another(base: Sequence[tuple[CmpT, CmpT]], covered: Sequence[tuple[CmpT, CmpT]]) -> bool:
+def interval_covers_another(
+    base: Sequence[tuple[CmpT, CmpT]], covered: Sequence[tuple[CmpT, CmpT]]
+) -> bool:
     # it's ok, for now we'll have O(n*m) algo
     for start_c, end_c in covered:
-        if not any(
-            start_o <= start_c and end_c <= end_o
-            for start_o, end_o in base
-        ):
+        if not any(start_o <= start_c and end_c <= end_o for start_o, end_o in base):
             return False
     return True

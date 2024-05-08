@@ -83,7 +83,6 @@ def test_one_regex(regex, cases):
     test_one_regex_tdfa(regex, cases, tdfa)
 
 
-
 def test_regexes(data):
     for regex, cases in data.items():
         test_one_regex(regex, cases)
@@ -260,51 +259,34 @@ data = {
     "[a-d]...[a-ho][e-h]...": [
         ("", False, {}),
         ("sdfsd", False, {}),
-    ] + [
-        (c, True, {}) for c in "abcdefgho"
-    ] + [
-        (c, True, {}) for c in "abcd"
-    ] + [
-        (c, True, {}) for c in "efgh"
-    ] + [
-        (c + "?", False, {}) for c in "abcdefgho"
-    ] + [
-        (c + "?", False, {}) for c in "abcd"
-    ] + [
-        (c + "?", False, {}) for c in "efgh"
-    ] + [
-        (c1 + c2, True, {}) for c1 in "abcdo" for c2 in "efgh"
-    ] + [
-        (c1 + c2, False, {}) for c1 in "efgh" for c2 in "abcd"
-    ] + [
-        (c1 + c2, True, {}) for c1 in "abcd" for c2 in "abcd"
-    ] + [
-        (c1 + c2, True, {}) for c1 in "efgh" for c2 in "efgh"
-    ],
+    ]
+    + [(c, True, {}) for c in "abcdefgho"]
+    + [(c, True, {}) for c in "abcd"]
+    + [(c, True, {}) for c in "efgh"]
+    + [(c + "?", False, {}) for c in "abcdefgho"]
+    + [(c + "?", False, {}) for c in "abcd"]
+    + [(c + "?", False, {}) for c in "efgh"]
+    + [(c1 + c2, True, {}) for c1 in "abcdo" for c2 in "efgh"]
+    + [(c1 + c2, False, {}) for c1 in "efgh" for c2 in "abcd"]
+    + [(c1 + c2, True, {}) for c1 in "abcd" for c2 in "abcd"]
+    + [(c1 + c2, True, {}) for c1 in "efgh" for c2 in "efgh"],
     "(<g1>[a-d])...(<g2>[a-ho])[e-h]...": [
         ("", False, {}),
         ("sdfsd", False, {}),
-    ] + [
-        (c, True, {"g1": [None], "g2": [c]}) for c in "abcd"  # XXX: why is it lazy here?
-    ] + [
-        (c, True, {"g1": [None], "g2": [c]}) for c in "efgho"
-    ] + [
-        (c + "?", False, {}) for c in "abcdefgho"
-    ] + [
-        (c + "?", False, {}) for c in "abcd"
-    ] + [
-        (c + "?", False, {}) for c in "efgh"
-    ] + [
-        (c1 + c2, True, {'g1': [c1], 'g2': [c2]}) for c1 in "abcd" for c2 in "efgh"
-    ] + [
-        ("o" + c2, True, {'g1': [None], 'g2': ["o"]}) for c2 in "efgh"
-    ] + [
-        (c1 + c2, False, {}) for c1 in "efgh" for c2 in "abcd"
-    ] + [
-        (c1 + c2, True, {'g1': [c1], 'g2': [c2]}) for c1 in "abcd" for c2 in "abcd"
-    ] + [
-        (c1 + c2, True, {'g1': [None], 'g2': [c1]}) for c1 in "efgh" for c2 in "efgh"
-    ],
+    ]
+    + [
+        (c, True, {"g1": [None], "g2": [c]})
+        for c in "abcd"  # XXX: why is it lazy here?
+    ]
+    + [(c, True, {"g1": [None], "g2": [c]}) for c in "efgho"]
+    + [(c + "?", False, {}) for c in "abcdefgho"]
+    + [(c + "?", False, {}) for c in "abcd"]
+    + [(c + "?", False, {}) for c in "efgh"]
+    + [(c1 + c2, True, {"g1": [c1], "g2": [c2]}) for c1 in "abcd" for c2 in "efgh"]
+    + [("o" + c2, True, {"g1": [None], "g2": ["o"]}) for c2 in "efgh"]
+    + [(c1 + c2, False, {}) for c1 in "efgh" for c2 in "abcd"]
+    + [(c1 + c2, True, {"g1": [c1], "g2": [c2]}) for c1 in "abcd" for c2 in "abcd"]
+    + [(c1 + c2, True, {"g1": [None], "g2": [c1]}) for c1 in "efgh" for c2 in "efgh"],
     "(<g1>[ab])...(<g2>[abcd])[cd]...": [
         ("", False, {}),
         ("d", True, {"g2": ["d"], "g1": [None]}),
@@ -508,7 +490,7 @@ data = {
     + [(chr(c), False, {}) for c in range(ord("A"), ord("Z"))]
     + [(chr(c) * 2, False, {}) for c in range(ord("A"), ord("Z"))]
     + [(str(i), False, {}) for i in range(10)]
-    + [(str(i)*2, False, {}) for i in range(10)],
+    + [(str(i) * 2, False, {}) for i in range(10)],
     "[^a-z]": [
         ("", False, {}),
     ]
@@ -517,7 +499,7 @@ data = {
     + [(chr(c), True, {}) for c in range(ord("A"), ord("Z"))]
     + [(chr(c) * 2, False, {}) for c in range(ord("A"), ord("Z"))]
     + [(str(i), True, {}) for i in range(10)]
-    + [(str(i)*2, False, {}) for i in range(10)],
+    + [(str(i) * 2, False, {}) for i in range(10)],
     "%w%": [
         ("", False, {}),
         (".", False, {}),
@@ -529,7 +511,7 @@ data = {
     + [(chr(c), True, {}) for c in range(ord("A"), ord("Z"))]
     + [(chr(c) * 2, False, {}) for c in range(ord("A"), ord("Z"))]
     + [(str(i), True, {}) for i in range(10)]
-    + [(str(i)*2, False, {}) for i in range(10)],
+    + [(str(i) * 2, False, {}) for i in range(10)],
     "%W%": [
         ("", False, {}),
         (".", True, {}),
@@ -541,7 +523,7 @@ data = {
     + [(chr(c), False, {}) for c in range(ord("A"), ord("Z"))]
     + [(chr(c) * 2, False, {}) for c in range(ord("A"), ord("Z"))]
     + [(str(i), False, {}) for i in range(10)]
-    + [(str(i)*2, False, {}) for i in range(10)],
+    + [(str(i) * 2, False, {}) for i in range(10)],
     "[a-bC-D]+": [
         ("", False, {}),
         ("a", True, {}),

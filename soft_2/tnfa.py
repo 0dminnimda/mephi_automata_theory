@@ -114,7 +114,9 @@ class TNFA(Generic[E]):
         result = []
         result.append("digraph G {\n")
         result.append("rankdir=LR\n")
-        result.append('node [label="", shape=circle, style=filled, fontname=Courier];\n')
+        result.append(
+            'node [label="", shape=circle, style=filled, fontname=Courier];\n'
+        )
         result.append("edge[arrowhead=vee fontname=Courier]\n")
         result.append("\n")
 
@@ -135,9 +137,13 @@ class TNFA(Generic[E]):
 
         for state in self.states:
             if state == self.initial_state:
-                result.append(f'n{state:0>{pad}} [label="{state}", shape=doublecircle];\n')
+                result.append(
+                    f'n{state:0>{pad}} [label="{state}", shape=doublecircle];\n'
+                )
             elif state == self.final_state:
-                result.append(f'n{state:0>{pad}} [label="{state}", shape=doublecircle];\n')
+                result.append(
+                    f'n{state:0>{pad}} [label="{state}", shape=doublecircle];\n'
+                )
             else:
                 result.append(f'n{state:0>{pad}} [label="{state}"];\n')
 
@@ -184,6 +190,7 @@ class TNFA(Generic[E]):
 
 
 SimTags = defaultdict[Tag, deque[int | None]]
+
 
 @dataclass
 class SimConf:
@@ -263,7 +270,9 @@ class SimulatableTNFA(Generic[E]):
                 finished[conf_state] = conf
         return finished, not_finished
 
-    def get_register_storage(self, regs: SimTags, tag: AnyTag) -> tuple[Sequence[int | None], int]:
+    def get_register_storage(
+        self, regs: SimTags, tag: AnyTag
+    ) -> tuple[Sequence[int | None], int]:
         if isinstance(tag, FixedTag):
             return regs[tag.origin], tag.offset
         else:
@@ -277,7 +286,9 @@ class SimulatableTNFA(Generic[E]):
             end_indices, end_offset = self.get_register_storage(registers, end)
             for start_id, end_id in zip(start_indices, end_indices):
                 if start_id is not None and end_id is not None:
-                    matches[name].append(word[start_id + start_offset: end_id + end_offset])
+                    matches[name].append(
+                        word[start_id + start_offset : end_id + end_offset]
+                    )
                 else:
                     matches[name].append(None)
         return dict(matches)

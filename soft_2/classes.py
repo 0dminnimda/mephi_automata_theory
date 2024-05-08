@@ -11,7 +11,6 @@ MIN_UNICODE_ORD = 0
 MIN_UNICODE = chr(MIN_UNICODE_ORD)
 
 
-
 @dataclass(frozen=True)
 class RE:
     pass
@@ -29,14 +28,8 @@ class SymbolRanges(RE):
 
     def matches(self, char: str) -> bool:
         if self.accept:
-            return any(
-                start <= char <= end
-                for start, end in self.ranges
-            )
-        return all(
-            not (start <= char <= end)
-            for start, end in self.ranges
-        )
+            return any(start <= char <= end for start, end in self.ranges)
+        return all(not (start <= char <= end) for start, end in self.ranges)
 
     @staticmethod
     def ranges_as_intervals(ranges: Iterable[tuple[str, str]]):
@@ -133,4 +126,3 @@ class NamedGroup(RE):
 @dataclass(frozen=True)
 class NamedGroupReference(RE):
     name: str
-
