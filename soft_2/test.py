@@ -221,7 +221,7 @@ data = {
         ("?a?", False, {}),
         ("sdfsd", False, {}),
     ],
-    "[ab]...[abcd][cd]...": [  # "[a-d]...[a-ho][e-h]..."
+    "[ab]...[abcd][cd]...": [
         ("", False, {}),
         ("c", True, {}),
         ("a", True, {}),
@@ -246,6 +246,54 @@ data = {
         ("??b", False, {}),
         ("?b?", False, {}),
         ("sdfsd", False, {}),
+    ],
+    "[a-d]...[a-ho][e-h]...": [
+        ("", False, {}),
+        ("sdfsd", False, {}),
+    ] + [
+        (c, True, {}) for c in "abcdefgho"
+    ] + [
+        (c, True, {}) for c in "abcd"
+    ] + [
+        (c, True, {}) for c in "efgh"
+    ] + [
+        (c + "?", False, {}) for c in "abcdefgho"
+    ] + [
+        (c + "?", False, {}) for c in "abcd"
+    ] + [
+        (c + "?", False, {}) for c in "efgh"
+    ] + [
+        (c1 + c2, True, {}) for c1 in "abcdo" for c2 in "efgh"
+    ] + [
+        (c1 + c2, False, {}) for c1 in "efgh" for c2 in "abcd"
+    ] + [
+        (c1 + c2, True, {}) for c1 in "abcd" for c2 in "abcd"
+    ] + [
+        (c1 + c2, True, {}) for c1 in "efgh" for c2 in "efgh"
+    ],
+    "(<g1>[a-d])...(<g2>[a-ho])[e-h]...": [
+        ("", False, {}),
+        ("sdfsd", False, {}),
+    ] + [
+        (c, True, {"g1": [None], "g2": [c]}) for c in "abcd"  # XXX: why is it lazy here?
+    ] + [
+        (c, True, {"g1": [None], "g2": [c]}) for c in "efgho"
+    ] + [
+        (c + "?", False, {}) for c in "abcdefgho"
+    ] + [
+        (c + "?", False, {}) for c in "abcd"
+    ] + [
+        (c + "?", False, {}) for c in "efgh"
+    ] + [
+        (c1 + c2, True, {'g1': [c1], 'g2': [c2]}) for c1 in "abcd" for c2 in "efgh"
+    ] + [
+        ("o" + c2, True, {'g1': [None], 'g2': ["o"]}) for c2 in "efgh"
+    ] + [
+        (c1 + c2, False, {}) for c1 in "efgh" for c2 in "abcd"
+    ] + [
+        (c1 + c2, True, {'g1': [c1], 'g2': [c2]}) for c1 in "abcd" for c2 in "abcd"
+    ] + [
+        (c1 + c2, True, {'g1': [None], 'g2': [c1]}) for c1 in "efgh" for c2 in "efgh"
     ],
     "(<g1>[ab])...(<g2>[abcd])[cd]...": [
         ("", False, {}),
@@ -557,9 +605,18 @@ data = {
         ("<>", True, {}),
         ("<<>>", True, {}),
     ],
+    "(a|b|e)|(a|b|c)": [
+        ("", False, {}),
+        ("a", True, {}),
+        ("b", True, {}),
+        ("c", True, {}),
+        ("e", True, {}),
+        ("aa", False, {}),
+        ("bb", False, {}),
+        ("cc", False, {}),
+        ("ee", False, {}),
+    ],
 }
-
-# (a|b|e)|(a|b|c)
 
 
 # fmt: off
