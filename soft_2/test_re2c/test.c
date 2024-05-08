@@ -9,12 +9,16 @@ bool lex(const char *s) {
         re2c:yyfill:enable = 0;
         re2c:define:YYCTYPE = char;
 
-        number = (("a"|"b"|"e") | ("a"|"b"|"c"));
+        number = (([abe]*)[abcd]([cdh]*));
 
         number { return true; }
     */
 }
 
+// number = (([ab\u0fa0-\u1388]*)[abcd]([cdh]*));
+// number = ([^a-z]|"k");
+// number = (("a"*)[ab]("b"*));
+// number = (("a"|"b"|"e") | ("a"|"b"|"c"));
 // number = ((#a("a"|"b"|"c")){3,});
 // number = ((#a"a"){2});
 // number = (#a"a")*#b("a"|"f")"f"*;
