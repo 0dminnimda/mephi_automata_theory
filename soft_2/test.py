@@ -9,6 +9,7 @@ import tdfa
 
 
 _reported = []
+_total_test_cases = 0
 
 
 def asdict(obj, exclude=None):
@@ -19,6 +20,8 @@ def asdict(obj, exclude=None):
 
 
 def test_one_regex(regex, cases):
+    global _total_test_cases
+
     # print(regex)
     re = parse(regex)
     # print(re)
@@ -34,6 +37,7 @@ def test_one_regex(regex, cases):
     simulatable_tdfa = tdfa.as_simulatable()
 
     for prompt, should_match, groups in cases:
+        _total_test_cases += 1
         match_tnfa = simulatable_tnfa.simulate(prompt)
         if (match_tnfa is not None) != should_match:
             _reported.append(
@@ -51,6 +55,7 @@ def test_one_regex(regex, cases):
                         f"{prompt!r} expected to match groups {groups}, but got {match_tnfa} for {regex!r} [tNfa]"
                     )
 
+        _total_test_cases += 1
         match_tdfa = simulatable_tdfa.simulate(prompt)
         if (match_tdfa is not None) != should_match:
             _reported.append(
@@ -77,10 +82,10 @@ def test_regexes(data):
         print(report)
 
     if _reported:
-        print(f"!!! {len(_reported)} test cases failed !!!")
+        print(f"!!! {len(_reported)} test cases out of {_total_test_cases} failed !!!")
         # exit(1)
     else:
-        print("!!! All test cases passed !!!")
+        print(f"!!! All {_total_test_cases} test cases passed !!!")
 
 
 data = {
