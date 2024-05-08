@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import classes as ast
 from dataclasses import dataclass, field
-from parser import iter_unique
+from helpers import iter_unique
 
 
 @dataclass

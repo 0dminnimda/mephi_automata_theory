@@ -80,3 +80,12 @@ def interval_covers_another(
         if not any(start_o <= start_c and end_c <= end_o for start_o, end_o in base):
             return False
     return True
+
+
+def iter_unique(x):
+    seen = set()
+    for it in x:
+        if it in seen:
+            continue
+        seen.add(it)
+        yield it

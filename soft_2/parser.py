@@ -13,6 +13,7 @@ from classes import (
     MAX_UNICODE,
 )
 from typing import NoReturn
+from helpers import iter_unique
 
 
 PIPE = "|"
@@ -57,15 +58,6 @@ SPECIAL_ESCAPES = {
 
 ANY_SYMBOL = "*"
 ANY_SYMBOL_RE = SymbolRanges(((MIN_UNICODE, MAX_UNICODE),))
-
-
-def iter_unique(x):
-    seen = set()
-    for it in x:
-        if it in seen:
-            continue
-        seen.add(it)
-        yield it
 
 
 @dataclass
