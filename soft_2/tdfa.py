@@ -868,12 +868,12 @@ class SimulatableTDFA(Generic[E]):
                 return next_index, next_state, regops
         return None
 
-    def simulate(self, word: str) -> dict[str, list[str]] | None:
+    def match_whole_string(self, word: str, initial_index: int = 0) -> dict[str, list[str]] | None:
         state = self.initial_state
         for reg in self.registers:
             reg.clear()
 
-        index = 0
+        index = initial_index
         while index < len(word):
             res = self.find_next_transition(state, word, index)
             if res is None:
@@ -891,3 +891,34 @@ class SimulatableTDFA(Generic[E]):
             self.execute_regops(index, regops)
 
         return self.gather_matches(word)
+
+    def match_maximum_length(self, word: str, initial_index: int = 0) -> tuple[int, dict[str, list[str]] | None]:
+        state = self.initial_state
+        for reg in self.registers:
+            reg.clear()
+
+        last_matching: tuple[State, int, list[RegisterStorage]] | None = None
+
+        index = initial_index
+        while index < len(word):
+            if state in self.final_states:
+                last_matching = state, index, deepcopy(self.registers)
+
+            res = self.find_next_transition(state, word, index)
+            if res is None:
+                break
+
+            next_index, state, regops = res
+            self.execute_regops(index, regops)
+            index = next_index
+
+        if last_matching is None:
+            return initial_index, None
+
+        state, index, self.registers = last_matching
+
+        regops = self.final_function.get(state)
+        if regops is not None:
+            self.execute_regops(index, regops)
+
+        return index, self.gather_matches(word)

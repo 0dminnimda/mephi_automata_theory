@@ -4,6 +4,7 @@ from pprint import pprint
 from tnfa import ast_to_tnfa, TNFA
 from tdfa import tnfa_to_tdfa, TDFA
 import classes as ast
+from library import Pattern
 from pathlib import Path
 import tdfa
 
@@ -19,7 +20,7 @@ def asdict(obj, exclude=None):
     return d
 
 
-def test_one_regex_tnfa(regex, cases, tnfa: TNFA):
+def test_one_regex_full_match_tnfa(regex, cases, tnfa: TNFA):
     global _total_test_cases
 
     if DUMP_DOT:
@@ -46,16 +47,16 @@ def test_one_regex_tnfa(regex, cases, tnfa: TNFA):
                     )
 
 
-def test_one_regex_tdfa(regex, cases, tdfa: TDFA):
+def test_one_regex_full_match_tdfa(regex, cases, tdfa: TDFA):
     global _total_test_cases
 
     if DUMP_DOT:
         tdfa.dump_dot("tdfa.dot")
-    sim = tdfa.as_simulatable()
+    pattern = Pattern(tdfa.as_simulatable())
 
     for prompt, should_match, groups in cases:
         _total_test_cases += 1
-        match = sim.simulate(prompt)
+        match = pattern.match(prompt)
         if (match is not None) != should_match:
             _reported.append(
                 f"{prompt!r} should {'not ' if not should_match else ''}match {regex!r} in simulation [tDfa]"
@@ -67,25 +68,25 @@ def test_one_regex_tdfa(regex, cases, tdfa: TDFA):
                         f"{prompt!r} did not match but expected groups captured for {regex!r} [tDfa]"
                     )
             else:
-                if groups != match:
+                if groups != match.groups:
                     _reported.append(
-                        f"{prompt!r} expected to match groups {groups}, but got {match} for {regex!r} [tDfa]"
+                        f"{prompt!r} expected to match groups {groups}, but got {match.groups} for {regex!r} [tDfa]"
                     )
 
 
-def test_one_regex(regex, cases):
+def test_one_regex_full_match(regex, cases):
     re = parse(regex)
     tnfa = ast_to_tnfa(re)
     tdfa = tnfa_to_tdfa(tnfa)
 
     if TEST_TNFA:
-        test_one_regex_tnfa(regex, cases, tnfa)
-    test_one_regex_tdfa(regex, cases, tdfa)
+        test_one_regex_full_match_tnfa(regex, cases, tnfa)
+    test_one_regex_full_match_tdfa(regex, cases, tdfa)
 
 
-def test_regexes(data):
-    for regex, cases in data.items():
-        test_one_regex(regex, cases)
+def test_regexes(data_full_match, data_find_all):
+    for regex, cases in data_full_match.items():
+        test_one_regex_full_match(regex, cases)
 
     for report in _reported:
         print(report)
@@ -97,7 +98,7 @@ def test_regexes(data):
         print(f"!!! All {_total_test_cases} test cases passed !!!")
 
 
-data = {
+data_full_match = {
     "b|((<gg>a)|%?%){2}?<gg>...": [
         ("", True, {"gg": [None]}),
         ("b", True, {"gg": [None]}),
@@ -626,6 +627,10 @@ data = {
 }
 
 
+data_find_all = {
+}
+
+
 # fmt: off
 
 
@@ -712,5 +717,5 @@ if __name__ == "__main__":
     # test_dfa0()
     # test_dfa1()
     # test_dfa3()
-    test_regexes(data)
+    test_regexes(data_full_match, data_find_all)
     print("DONE")
