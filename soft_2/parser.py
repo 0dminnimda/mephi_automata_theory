@@ -92,10 +92,14 @@ class Parser:
             self.consume()
 
     @staticmethod
-    def point_at_position(s: str, position: int, indent: str = "    ") -> str:
+    def point_at_position(
+        s: str, position: int, max_width: int = 60, indent: str = "    "
+    ) -> str:
         result = []
-        result.append(s[position - 50 : position + 50])
-        result.append(" " * position + "^")
+        min_pos = max(position - max_width // 2, 0)
+        max_pos = min(min_pos + max_width, len(s))
+        result.append(s[min_pos:max_pos])
+        result.append(" " * (position - min_pos) + "^")
         return "\n".join(indent + it for it in result)
 
     def report(self, message) -> NoReturn:
