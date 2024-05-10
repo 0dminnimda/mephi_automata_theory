@@ -31,7 +31,6 @@ OPEN_SQUARE_BRACKET = "["
 CLOSE_SQUARE_BRACKET = "]"
 META_CHARS = (
     PIPE
-    + PERCENT
     + ELLIPSIS
     + QUESTION_MARK
     + OPEN_ROUND_BRACKET
@@ -390,11 +389,6 @@ class Parser:
             self.consume()
             return ANY_SYMBOL_RE
 
-        if self.peek() not in meta_chars:
-            c = self.peek()
-            self.consume()
-            return make_symbol(c)
-
         if self.peek() == PERCENT and self.peek(2) == PERCENT:
             self.consume()
             c = self.peek()
@@ -403,6 +397,11 @@ class Parser:
             special = SPECIAL_ESCAPES.get(c)
             if special is not None:
                 return special
+            return make_symbol(c)
+
+        if self.peek() not in meta_chars:
+            c = self.peek()
+            self.consume()
             return make_symbol(c)
 
         return None
