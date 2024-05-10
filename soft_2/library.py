@@ -59,4 +59,17 @@ class Pattern:
         return self._simulatable.restore_regular_expression_via_k_path()
 
 
-# def compile(re: str) -:
+def compile(re: str) -> Pattern:
+    return Pattern(re)
+
+
+def match(re: str, s: str) -> Match | None:
+    return Pattern(re).match(s)
+
+
+def findall(re: str, s: str) -> list[str]:
+    return Pattern(re).findall(s)
+
+
+def finditer(re: str, s: str) -> Iterable[Match]:
+    return Pattern(re).finditer(s)
