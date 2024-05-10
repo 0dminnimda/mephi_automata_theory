@@ -900,9 +900,12 @@ class SimulatableTDFA(Generic[E]):
         last_matching: tuple[State, int, list[RegisterStorage]] | None = None
 
         index = initial_index
-        while index < len(word):
+        while 1:
             if state in self.final_states:
                 last_matching = state, index, deepcopy(self.registers)
+
+            if index >= len(word):
+                break
 
             res = self.find_next_transition(state, word, index)
             if res is None:
