@@ -32,7 +32,7 @@ def test_one_regex_full_match_tnfa(regex, cases, tnfa: TNFA):
         match = sim.simulate(prompt)
         if (match is not None) != should_match:
             _reported.append(
-                f"{prompt!r} should {'not ' if not should_match else ''}match {regex!r} in simulation [tNfa]"
+                f"{prompt!r} should {'not ' if not should_match else ''}match {regex!r} [tNfa]"
             )
         else:
             if match is None:
@@ -59,7 +59,7 @@ def test_one_regex_full_match_tdfa(regex, cases, tdfa: TDFA):
         match = pattern.match(prompt)
         if (match is not None) != should_match:
             _reported.append(
-                f"{prompt!r} should {'not ' if not should_match else ''}match {regex!r} in simulation [tDfa]"
+                f"{prompt!r} should {'not ' if not should_match else ''}match {regex!r} [tDfa]"
             )
         else:
             if match is None:
