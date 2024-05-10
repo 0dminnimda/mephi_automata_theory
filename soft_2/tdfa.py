@@ -115,6 +115,7 @@ class CopyOp:
 
 RegOp = SetOp | CopyOp
 RegOps = list[RegOp]
+RegOpsTuple = tuple[RegOp, ...]
 
 
 @dataclass
@@ -210,6 +211,8 @@ class DeterminableTNFA(Generic[E]):
         if self.verbose:
             print(self.tag_to_regs)
 
+        self.merge_transitions()
+
         return TDFA[E](
             tnfa.tags,
             ordered_states,
@@ -223,6 +226,47 @@ class DeterminableTNFA(Generic[E]):
             tnfa.named_groups_to_tags,
             tnfa.multitags,
         )
+
+    @staticmethod
+    def separate_symbol_and_other_matchers(
+        mathcers: list[Matcher],
+    ) -> tuple[list[ast.SymbolRanges], list[Matcher]]:
+        range_matchers = list[ast.SymbolRanges]()
+        other_matchers = list[Matcher]()
+        for matcher in mathcers:
+            if isinstance(matcher, ast.SymbolRanges):
+                range_matchers.append(matcher)
+            else:
+                other_matchers.append(matcher)
+        return range_matchers, other_matchers
+
+    def merge_transitions(self):
+        all_trans: defaultdict[tuple[State, State], dict[RegOpsTuple, list[Matcher]]]
+        all_trans = defaultdict(lambda: defaultdict(list))
+
+        for (incoming, matcher), (
+            outcoming,
+            regops,
+        ) in self.transition_function.items():
+            all_trans[(incoming, outcoming)][tuple(regops)].append(matcher)
+
+        new_transition_function = dict()
+        for (incoming, outcoming), mapping in all_trans.items():
+            for regops, matchers in mapping.items():
+                symbol_matchers, matchers = (
+                    self.separate_symbol_and_other_matchers(matchers)
+                )
+                symbol_matchers = ast.SymbolRanges.merge(symbol_matchers)
+                if symbol_matchers:
+                    assert (
+                        len(symbol_matchers) == 1
+                    ), "Only positive matchers should be used for determinization"
+                    matchers.append(symbol_matchers[0])
+
+                for matcher in matchers:
+                    new_transition_function[(incoming, matcher)] = (outcoming, regops)
+
+        self.transition_function = new_transition_function
 
     def get_all_unique_matchers_and_update_transitions(self) -> list[Matcher]:
         # 1. All non-symbol-ranges (group matchers) are unique
