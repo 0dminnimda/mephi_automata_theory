@@ -892,17 +892,21 @@ class SimulatableTDFA(Generic[E]):
 
         return self.gather_matches(word)
 
-    def match_maximum_length(self, word: str, initial_index: int = 0) -> tuple[int, dict[str, list[str]] | None]:
+    def match_maximum_length(self, word: str, initial_index: int = 0, capture: bool = False) -> tuple[int, dict[str, list[str]] | None]:
         state = self.initial_state
-        for reg in self.registers:
-            reg.clear()
+        if capture:
+            for reg in self.registers:
+                reg.clear()
 
         last_matching: tuple[State, int, list[RegisterStorage]] | None = None
 
         index = initial_index
         while 1:
             if state in self.final_states:
-                last_matching = state, index, deepcopy(self.registers)
+                if capture:
+                    last_matching = state, index, deepcopy(self.registers)
+                else:
+                    last_matching = state, index, self.registers
 
             if index >= len(word):
                 break
@@ -912,7 +916,8 @@ class SimulatableTDFA(Generic[E]):
                 break
 
             next_index, state, regops = res
-            self.execute_regops(index, regops)
+            if capture:
+                self.execute_regops(index, regops)
             index = next_index
 
         if last_matching is None:
@@ -920,8 +925,12 @@ class SimulatableTDFA(Generic[E]):
 
         state, index, self.registers = last_matching
 
-        regops = self.final_function.get(state)
-        if regops is not None:
-            self.execute_regops(index, regops)
+        if capture:
+            regops = self.final_function.get(state)
+            if regops is not None:
+                self.execute_regops(index, regops)
 
-        return index, self.gather_matches(word)
+        if capture:
+            return index, self.gather_matches(word)
+        else:
+            return index, {}

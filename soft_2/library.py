@@ -3,7 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from parser import parse
 from tnfa import ast_to_tnfa
-from tdfa import tnfa_to_tdfa, SimulatableTDFA, TDFA
+from tdfa import tnfa_to_tdfa, SimulatableTDFA
+from typing import Iterable
 
 
 @dataclass
@@ -32,17 +33,27 @@ class Pattern:
             return None
         return Match(0, len(s), s, groups)
 
-    def findall(self, s: str) -> list[Match]:
+    def findall(self, s: str) -> list[str]:
         result = []
         index = 0
         while index < len(s):
-            next_index, groups = self._simulatable.match_maximum_length(s, index)
+            next_index, groups = self._simulatable.match_maximum_length(s, index, capture=False)
             if groups is not None and index != next_index:
-                result.append(Match(index, next_index, s[index:next_index], groups))
+                result.append(s[index:next_index])
                 index = next_index
             else:
                 index += 1
         return result
+
+    def finditer(self, s: str) -> Iterable[Match]:
+        index = 0
+        while index < len(s):
+            next_index, groups = self._simulatable.match_maximum_length(s, index, capture=True)
+            if groups is not None and index != next_index:
+                yield Match(index, next_index, s[index:next_index], groups)
+                index = next_index
+            else:
+                index += 1
 
 
 # def compile(re: str) -:
