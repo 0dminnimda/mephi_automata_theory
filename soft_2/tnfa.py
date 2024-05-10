@@ -57,9 +57,9 @@ def dump_pair(tag: AnyTag) -> str:
 
 
 DOT_ESCAPE_TABLE = {
-    '"': "\\\"",
-    ']': "\\]",
-    '[': "\\[",
+    '"': '\\"',
+    "]": "\\]",
+    "[": "\\[",
 }
 DOT_ESCAPE_TRANS = str.maketrans(DOT_ESCAPE_TABLE)
 
@@ -68,7 +68,9 @@ MY_RE_ESCAPE_TABLE = {c: f"%{c}%" for c in parser.META_CHARS}
 MY_RE_ESCAPE_TRANS = str.maketrans(MY_RE_ESCAPE_TABLE)
 
 
-def dump_matcher(matcher: Matcher, escape_meta: bool = False, escape_dot: bool = True) -> str:
+def dump_matcher(
+    matcher: Matcher, escape_meta: bool = False, escape_dot: bool = True
+) -> str:
     if isinstance(matcher, ast.SymbolRanges):
         pairs = []
         for start, end in matcher.ranges:
@@ -87,6 +89,12 @@ def dump_matcher(matcher: Matcher, escape_meta: bool = False, escape_dot: bool =
 
         if not matcher.accept:
             return f"[^{middle}]"
+        if (
+            len(matcher.ranges) == 1
+            and matcher.ranges[0][0] == ast.MIN_UNICODE
+            and matcher.ranges[0][1] == ast.MAX_UNICODE
+        ):
+            return "*"
         if len(matcher.ranges) == 1 and matcher.ranges[0][0] == matcher.ranges[0][1]:
             return f"{middle}"
         return f"[{middle}]"
@@ -139,7 +147,9 @@ class TNFA(Generic[E]):
         )
         result.append("edge[arrowhead=vee fontname=Courier]\n")
         result.append("\n")
-        result.append(f"n [shape=point xlabel=\"Start\"] n -> n{self.initial_state} [style=dotted]\n")
+        result.append(
+            f'n [shape=point xlabel="Start"] n -> n{self.initial_state} [style=dotted]\n'
+        )
 
         pad = len(str(max(self.states)))
         trans = []
