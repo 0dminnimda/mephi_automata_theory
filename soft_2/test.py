@@ -816,9 +816,10 @@ def test_dfa3():
     # re = parse("b|((<gg>a)|%?%){2}?f...")
     # re = parse("((<gg>a)|%?%|<gg>){2}")
     # re = parse("(<a>a)...(<b>a|c)c...")
-    # re = parse("(%+%?(d)...)?(((%(%|%[%|%{%)?d...(%)%|%]%|%}%)?)...)")
+    re = parse("(%+%?(d)...)?(((%(%|%[%|%{%)?d...(%)%|%]%|%}%)?)...)")
     # re = parse('b|((<gg>a)|%?%){2}?')
-    re = parse('(a|b|c){,}')
+    # re = parse('(a|b|c){,}')
+    # re = parse('()|((b|%?%|a%?%|a))')
     # re = parse("[abcd]e[ght]")
     # re = parse("[abcd]e")
     # re = ast.Or((
