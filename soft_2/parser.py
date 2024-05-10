@@ -110,6 +110,9 @@ class Parser:
 
         res = self.parse_expr()
 
+        if self.position != len(self.string):
+            self.report("Unexpected character")
+
         assert res is not None, "Parsing of the regex was unsuccesfull"
         return res
 
