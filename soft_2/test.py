@@ -650,6 +650,17 @@ data_full_match = {
         ("ee", False, {}),
         ("ff", False, {}),
     ],
+    "(<ou>ab(<in>[c-f]))...": [
+        ("", True, {'in': [None], 'ou': [None]}),
+        ("b", False, {}),
+        ("a", False, {}),
+        ("aa", False, {}),
+        ("bb", False, {}),
+        ("aab", False, {}),
+        ("abc", True, {"ou": ["abc"], "in": ["c"]}),
+        ("abcabdabf", True, {"ou": ["abc", "abd", "abf"], "in": ["c", "d", "f"]}),
+        ("sdfsd", False, {}),
+    ],
 }
 
 
