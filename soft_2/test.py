@@ -138,6 +138,51 @@ def test_regexes(data_full_match, data_find_all):
         print(f"!!! All {_total_test_cases} test cases passed !!!")
 
 
+def make_email_pattern():
+    local_name = r"[a-z0-9]+"
+
+    dotted_local = f"{local_name}(.{local_name})..."
+
+    quoted_local = '"([\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-[%]%-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])..."'
+
+    local = f"({dotted_local}|{quoted_local})"
+
+    dnss_label = "[a-z0-9]([a-z0-9%-%]...[a-z0-9])?"
+
+    dotted_domain = rf"({dnss_label}.)+{dnss_label}"
+
+    # ip_digit = r"25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?"
+    # ipv4 = rf"(({ip_digit})\.){{3}}({ip_digit})"
+
+    ipv4 = "((25[0-5]|(2[0-4]|1%d%|[1-9]|)%d%).?){4}"
+
+    ipv6_segment = "[0-9a-fA-F]{1,4}"
+    ipv6 = (
+        f"({ipv6_segment}:){{7,7}}{ipv6_segment}|"
+        f"({ipv6_segment}:){{1,7}}:|"
+        f"({ipv6_segment}:){{1,6}}:{ipv6_segment}|"
+        f"({ipv6_segment}:){{1,5}}(:{ipv6_segment}){{1,2}}|"
+        f"({ipv6_segment}:){{1,4}}(:{ipv6_segment}){{1,3}}|"
+        f"({ipv6_segment}:){{1,3}}(:{ipv6_segment}){{1,4}}|"
+        f"({ipv6_segment}:){{1,2}}(:{ipv6_segment}){{1,5}}|"
+        f"{ipv6_segment}:((:{ipv6_segment}){{1,6}})|"
+        f":((:{ipv6_segment}){{1,7}}|:)|"
+        f"fe80:(:{ipv6_segment}){{0,4}}%[0-9a-zA-Z]{{1,}}|"
+        f"::(ffff(:0{{1,4}}){{0,1}}:){{0,1}}{ipv4}|"
+        f"({ipv6_segment}:){{1,4}}:{ipv4}"
+    )
+
+    ip_wtfkw = "([a-z0-9%-%]...[a-z0-9]:([\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)"
+
+    ip_domain = f"%[%((IP(v4)?:)?{ipv4}|(IPv6:)?{ipv6}|{ip_wtfkw})%]%"
+
+    domain = f"({dotted_domain}|{ip_domain})"
+
+    regular = f"(<local>{local})%s%...@%s%...(<domain>{domain})"
+
+    return regular
+
+
 data_full_match = {
     "b|((<gg>a)|%?%){2}?<gg>...": [
         ("", True, {"gg": [None]}),
