@@ -77,11 +77,14 @@ def dump_matcher(matcher: Matcher, escape_meta: bool = False, escape_dot: bool =
             else:
                 pairs.append(f"{start}-{end}")
 
-        middle = repr(repr("".join(pairs))[1:-1])[1:-1]
+        middle = "".join(pairs)
+
         if escape_dot:
+            middle = repr(repr(middle)[1:-1])[1:-1]
             middle = middle.translate(DOT_ESCAPE_TRANS)
         if escape_meta:
             middle = middle.translate(MY_RE_ESCAPE_TRANS)
+
         if not matcher.accept:
             return f"[^{middle}]"
         if len(matcher.ranges) == 1 and matcher.ranges[0][0] == matcher.ranges[0][1]:
