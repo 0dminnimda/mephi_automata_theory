@@ -40,14 +40,26 @@ class AstLength(Visitor):
         return 1
 
     def visit_Concat(self, node: ast.Concat):
-        return sum(self.visit(child) for child in node.expressions)
+        result = 0
+        for child in node.expressions:
+            op = self.visit(child)
+            if op is None:
+                return None
+            result += op
+        return result
 
     def visit_Or(self, node: ast.Or):
-        parts = [self.visit(child) for child in node.expressions]
-        unique = sum(1 for _ in iter_unique(parts))
-        if unique != 1:
-            return None
-        return parts[0]
+        last_op = 0
+        unique_count = 0
+        for op in iter_unique(self.visit(e) for e in node.expressions):
+            if op is None:
+                return None
+            unique_count += 1
+            last_op = op
+
+        if unique_count == 1:
+            return last_op
+        return None
 
     def visit_Repeat(self, node: ast.Repeat):
         if node.min == node.max:
