@@ -25,7 +25,7 @@ def test_one_regex_full_match_tnfa(regex, cases, tnfa: TNFA):
     _total_test_cases += len(cases)
 
     if DUMP_DOT:
-        tnfa.dump_dot("tnfa_k.dot")
+        tnfa.dump_dot("tnfa.dot")
     sim = tnfa.as_simulatable()
 
     for prompt, should_match, groups in cases:
@@ -763,7 +763,7 @@ def test_dfa3():
     # ))
     # pprint((re))
     tnfa = ast_to_tnfa(re)
-    tnfa.dump_dot("tnfa_k.dot")
+    tnfa.dump_dot("tnfa.dot")
     tdfa = tnfa_to_tdfa(tnfa)
     tdfa.dump_dot("tdfa.dot")
 
