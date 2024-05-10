@@ -642,6 +642,7 @@ class TDFA(Generic[E]):
         )
         result.append("edge[arrowhead=vee fontname=Courier]\n")
         result.append("\n")
+        result.append(f"n [shape=point xlabel=\"Start\"] n -> n{self.initial_state} [style=dotted]\n")
 
         for (q, s), (p, o) in self.transition_function.items():
             ops = " ".join(f"{op}" for op in o)
@@ -656,16 +657,13 @@ class TDFA(Generic[E]):
             )
 
         for state in self.states:
+            preoperties = []
             if state.id == self.initial_state:
-                result.append(
-                    f'n{state.id} [label="{state.id}", shape=doublecircle];\n'
-                )
-            elif state.id in self.final_states:
-                result.append(
-                    f'n{state.id} [label="{state.id}", shape=doublecircle];\n'
-                )
-            else:
-                result.append(f'n{state.id} [label="{state.id}"];\n')
+                preoperties.append("style=empty")
+            if state.id in self.final_states:
+                preoperties.append("shape=doublecircle")
+            preoperties = " ".join(preoperties)
+            result.append(f'n{state.id} [label="{state.id}" {preoperties}];\n')
 
             if state.id in self.final_function:
                 result.append(f"n{state.id}_fin [style = invis];\n")

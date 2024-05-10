@@ -139,6 +139,7 @@ class TNFA(Generic[E]):
         )
         result.append("edge[arrowhead=vee fontname=Courier]\n")
         result.append("\n")
+        result.append(f"n [shape=point xlabel=\"Start\"] n -> n{self.initial_state} [style=dotted]\n")
 
         pad = len(str(max(self.states)))
         trans = []
@@ -156,16 +157,13 @@ class TNFA(Generic[E]):
         result.extend(trans)
 
         for state in self.states:
+            preoperties = []
             if state == self.initial_state:
-                result.append(
-                    f'n{state:0>{pad}} [label="{state}", shape=doublecircle];\n'
-                )
-            elif state == self.final_state:
-                result.append(
-                    f'n{state:0>{pad}} [label="{state}", shape=doublecircle];\n'
-                )
-            else:
-                result.append(f'n{state:0>{pad}} [label="{state}"];\n')
+                preoperties.append("style=empty")
+            if state == self.final_state:
+                preoperties.append("shape=doublecircle")
+            preoperties = " ".join(preoperties)
+            result.append(f'n{state:0>{pad}} [label="{state}" {preoperties}];\n')
 
         result.append("}\n")
 
