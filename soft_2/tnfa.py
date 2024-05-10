@@ -8,6 +8,7 @@ from typing import Protocol, TypeVar, Generic, Sequence, NamedTuple
 from collections import deque, defaultdict
 from pathlib import Path
 from simplify_ast import Visitor, Tag, FixedTag, AnyTag, NGroup2Tags, SimplifyAst
+import parser
 
 from copy import deepcopy
 
@@ -63,7 +64,11 @@ DOT_ESCAPE_TABLE = {
 DOT_ESCAPE_TRANS = str.maketrans(DOT_ESCAPE_TABLE)
 
 
-def dump_matcher(matcher: Matcher) -> str:
+MY_RE_ESCAPE_TABLE = {c: f"%{c}%" for c in parser.META_CHARS}
+MY_RE_ESCAPE_TRANS = str.maketrans(MY_RE_ESCAPE_TABLE)
+
+
+def dump_matcher(matcher: Matcher, escape_meta: bool = False, escape_dot: bool = True) -> str:
     if isinstance(matcher, ast.SymbolRanges):
         pairs = []
         for start, end in matcher.ranges:
@@ -73,7 +78,10 @@ def dump_matcher(matcher: Matcher) -> str:
                 pairs.append(f"{start}-{end}")
 
         middle = repr(repr("".join(pairs))[1:-1])[1:-1]
-        middle = middle.translate(DOT_ESCAPE_TRANS)
+        if escape_dot:
+            middle = middle.translate(DOT_ESCAPE_TRANS)
+        if escape_meta:
+            middle = middle.translate(MY_RE_ESCAPE_TRANS)
         if not matcher.accept:
             return f"[^{middle}]"
         if len(matcher.ranges) == 1 and matcher.ranges[0][0] == matcher.ranges[0][1]:
