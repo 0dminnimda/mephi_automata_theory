@@ -134,11 +134,11 @@ class SimplifyAst(Visitor):
         if isinstance(length, int):
             start_tag = self.get_next_tag()
             end_tag = FixedTag(start_tag, length)
-            result = (ast.Tag(start_tag), node.expr)
+            result = (ast.Tag(start_tag), expr)
         else:
             start_tag = self.get_next_tag()
             end_tag = self.get_next_tag()
-            result = (ast.Tag(start_tag), node.expr, ast.Tag(end_tag))
+            result = (ast.Tag(start_tag), expr, ast.Tag(end_tag))
 
         self.named_groups_to_tags[node.name] = (start_tag, end_tag)
 
