@@ -22,13 +22,13 @@ def asdict(obj, exclude=None):
 
 def test_one_regex_full_match_tnfa(regex, cases, tnfa: TNFA):
     global _total_test_cases
+    _total_test_cases += len(cases)
 
     if DUMP_DOT:
         tnfa.dump_dot("tnfa_k.dot")
     sim = tnfa.as_simulatable()
 
     for prompt, should_match, groups in cases:
-        _total_test_cases += 1
         match = sim.simulate(prompt)
         if (match is not None) != should_match:
             _reported.append(
@@ -49,13 +49,13 @@ def test_one_regex_full_match_tnfa(regex, cases, tnfa: TNFA):
 
 def test_one_regex_full_match_tdfa(regex, cases, tdfa: TDFA):
     global _total_test_cases
+    _total_test_cases += len(cases)
 
     if DUMP_DOT:
         tdfa.dump_dot("tdfa.dot")
     pattern = Pattern(tdfa.as_simulatable())
 
     for prompt, should_match, groups in cases:
-        _total_test_cases += 1
         match = pattern.match(prompt)
         if (match is not None) != should_match:
             _reported.append(
