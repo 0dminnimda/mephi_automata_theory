@@ -761,6 +761,7 @@ def test_dfa3():
     #         ast.Repeat(ast.make_symbol("f"), 0, None),
     #     ))
     # ))
+    # pprint((re))
     tnfa = ast_to_tnfa(re)
     tnfa.dump_dot("tnfa_k.dot")
     tdfa = tnfa_to_tdfa(tnfa)
