@@ -253,8 +253,8 @@ class DeterminableTNFA(Generic[E]):
         new_transition_function = dict()
         for (incoming, outcoming), mapping in all_trans.items():
             for regops, matchers in mapping.items():
-                symbol_matchers, matchers = (
-                    self.separate_symbol_and_other_matchers(matchers)
+                symbol_matchers, matchers = self.separate_symbol_and_other_matchers(
+                    matchers
                 )
                 symbol_matchers = ast.SymbolRanges.merge(symbol_matchers)
                 if symbol_matchers:
@@ -831,6 +831,94 @@ class SimulatableTDFA(Generic[E]):
     registers: list[RegisterStorage]
     named_groups_to_tags: NGroup2Tags
 
+    def restore_regular_expression_via_k_path(self) -> str | None:
+        transition_map: dict[tuple[State, State], list[Matcher]] = defaultdict(list)
+        for inc, other in self.transition_function.items():
+            for matcher, out, _ in other:
+                transition_map[(inc, out)].append(matcher)
+
+        dumpped_tran_map: dict[tuple[State, State], str] = dict()
+        for key, matchers in transition_map.items():
+            if any(not isinstance(m, ast.SymbolRanges) for m in matchers):
+                return None  # we don't support group references yet
+            matchers = {
+                dump_matcher(m, escape_meta=True, escape_dot=False) for m in matchers
+            }
+            result = "|".join(it for it in matchers if it)
+            if len(matchers) > 1:
+                result = f"({result})"
+            dumpped_tran_map[key] = result
+
+        max_state: State = max(self.transition_function.keys())
+        memo = {}
+        paths = [
+            self._k_path_memo(
+                self.initial_state, fin, max_state, memo, dumpped_tran_map
+            )
+            for fin in self.final_states
+        ]
+        paths = [f"({p})" for p in paths if p is not None]
+        return "|".join(set(paths))
+
+    def _k_path_memo(
+        self,
+        source: State,
+        target: State,
+        K: State,
+        memo: dict[tuple[State, State, State], str | None],
+        transition_map: dict[tuple[State, State], str],
+    ) -> str | None:
+
+        cache_key = (source, target, K)
+        # print("in", cache_key)
+
+        cache = memo.get(cache_key)
+        if cache is not None:
+            # print("cache", cache_key, cache)
+            return cache
+
+        if K == -1:
+            result = transition_map.get((source, target), "")
+            if not result and source != target:
+                result = None
+            # print("k==-1", cache_key, result)
+            memo[cache_key] = result
+            return result
+
+        first_part = self._k_path_memo(source, target, K - 1, memo, transition_map)
+
+        if source != K:
+            second_first = self._k_path_memo(source, K, K - 1, memo, transition_map)
+        else:
+            second_first = ""
+
+        repeating = self._k_path_memo(K, K, K - 1, memo, transition_map)
+        repeating = f"({repeating})..." if repeating else ""  # ok for it to be None
+
+        if K != target:
+            second_third = self._k_path_memo(K, target, K - 1, memo, transition_map)
+        else:
+            second_third = ""
+
+        if second_first is None or second_third is None:
+            second_part = None
+        else:
+            second_part = second_first + repeating + second_third
+
+        if first_part is not None and second_part is not None:
+            if first_part == second_part:
+                result = first_part
+            else:
+                result = f"({first_part}|{second_part})"
+        elif first_part is not None:
+            result = first_part
+        else:
+            result = second_part
+
+        # print("gen", cache_key, result)
+        memo[cache_key] = result
+        return result
+
     def execute_regops(self, index: int, regops: RegOps) -> None:
         for regop in regops:
             if isinstance(regop, SetOp):
@@ -912,7 +1000,9 @@ class SimulatableTDFA(Generic[E]):
                 return next_index, next_state, regops
         return None
 
-    def match_whole_string(self, word: str, initial_index: int = 0) -> dict[str, list[str]] | None:
+    def match_whole_string(
+        self, word: str, initial_index: int = 0
+    ) -> dict[str, list[str]] | None:
         state = self.initial_state
         for reg in self.registers:
             reg.clear()
@@ -936,7 +1026,9 @@ class SimulatableTDFA(Generic[E]):
 
         return self.gather_matches(word)
 
-    def match_maximum_length(self, word: str, initial_index: int = 0, capture: bool = False) -> tuple[int, dict[str, list[str]] | None]:
+    def match_maximum_length(
+        self, word: str, initial_index: int = 0, capture: bool = False
+    ) -> tuple[int, dict[str, list[str]] | None]:
         state = self.initial_state
         if capture:
             for reg in self.registers:

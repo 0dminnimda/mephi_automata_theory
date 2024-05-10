@@ -54,6 +54,12 @@ def test_one_regex_full_match_tdfa(regex, cases, tdfa: TDFA):
     if DUMP_DOT:
         tdfa.dump_dot("tdfa.dot")
     pattern = Pattern(tdfa.as_simulatable())
+    rere = pattern.restore_regex_via_k_path()
+    if rere is not None:
+        _total_test_cases += len(cases)
+        pattern_2 = Pattern(rere)
+    else:
+        pattern_2 = None
 
     for prompt, should_match, groups in cases:
         match = pattern.match(prompt)
@@ -72,6 +78,14 @@ def test_one_regex_full_match_tdfa(regex, cases, tdfa: TDFA):
                     _reported.append(
                         f"{prompt!r} expected to match groups {groups}, but got {match.groups} for {regex!r} [tDfa]"
                     )
+
+        if pattern_2 is not None:
+            match2 = pattern_2.match(prompt)
+
+            if (match2 is not None) != should_match:
+                _reported.append(
+                    f"{prompt!r} should {'not ' if not should_match else ''}match {rere!r} (from {regex!r}) [tDfa]"
+                )
 
 
 def test_one_regex_full_match(regex, cases):
@@ -740,7 +754,10 @@ def test_dfa2():
             ast.make_symbol("b"),
         )),
     ))
+    # re = parse('b|((<gg>a)|%?%){2}?')
+    pprint(re)
     tnfa = ast_to_tnfa(re)
+    tnfa.dump_dot("tnfa.dot")
     tdfa = tnfa_to_tdfa(tnfa)
     tdfa.dump_dot("tdfa.dot")
 
@@ -750,7 +767,11 @@ def test_dfa3():
     # re = parse("b|((<gg>a)|%?%){2}?f...")
     # re = parse("((<gg>a)|%?%|<gg>){2}")
     # re = parse("(<a>a)...(<b>a|c)c...")
-    re = parse("(%+%?(d)...)?(((%(%|%[%|%{%)?d...(%)%|%]%|%}%)?)...)")
+    # re = parse("(%+%?(d)...)?(((%(%|%[%|%{%)?d...(%)%|%]%|%}%)?)...)")
+    # re = parse('b|((<gg>a)|%?%){2}?')
+    re = parse('(a|b|c){,}')
+    # re = parse("[abcd]e[ght]")
+    # re = parse("[abcd]e")
     # re = ast.Or((
     #     ast.make_symbol("b"),
     #     ast.Concat((
@@ -766,19 +787,30 @@ def test_dfa3():
     tnfa.dump_dot("tnfa.dot")
     tdfa = tnfa_to_tdfa(tnfa)
     tdfa.dump_dot("tdfa.dot")
+    sim = tdfa.as_simulatable()
+    print(sim)
+    restored = sim.restore_regular_expression_via_k_path()
+    print(restored)
+    assert restored
+
+    re = parse(restored)
+    tnfa = ast_to_tnfa(re)
+    tnfa.dump_dot("tnfa2.dot")
+    tdfa = tnfa_to_tdfa(tnfa)
+    tdfa.dump_dot("tdfa2.dot")
 
 
 # fmt: on
 
 
-TEST_TNFA = True
+TEST_TNFA = False
 DUMP_DOT = True
 
 
 if __name__ == "__main__":
-    # test_dfa2()
     # test_dfa0()
     # test_dfa1()
+    # test_dfa2()
     # test_dfa3()
     test_regexes(data_full_match, data_find_all)
     print("DONE")

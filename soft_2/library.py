@@ -55,5 +55,8 @@ class Pattern:
             else:
                 index += 1
 
+    def restore_regex_via_k_path(self) -> str | None:
+        return self._simulatable.restore_regular_expression_via_k_path()
+
 
 # def compile(re: str) -:
