@@ -64,7 +64,7 @@ def dump_matcher(matcher: Matcher) -> str:
             else:
                 pairs.append(f"{start}-{end}")
 
-        middle = repr("".join(pairs))[1:-1]
+        middle = repr(repr("".join(pairs))[1:-1])[1:-1]
         if not matcher.accept:
             return f"[^{middle}]"
         if len(matcher.ranges) == 1 and matcher.ranges[0][0] == matcher.ranges[0][1]:
