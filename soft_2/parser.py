@@ -91,8 +91,18 @@ class Parser:
         while self.string[self.position].isspace():
             self.consume()
 
+    @staticmethod
+    def point_at_position(s: str, position: int, indent: str = "    ") -> str:
+        result = []
+        result.append(s[position - 50 : position + 50])
+        result.append(" " * position + "^")
+        return "\n".join(indent + it for it in result)
+
     def report(self, message) -> NoReturn:
-        raise ValueError(f"{message} at position {self.position}")
+        raise ValueError(
+            f"{message} at position {self.position}\n"
+            + self.point_at_position(self.string, self.position)
+        )
 
     def parse(self, string: str):
         self.string = string
