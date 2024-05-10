@@ -36,13 +36,12 @@ class Pattern:
         result = []
         index = 0
         while index < len(s):
-            next_index, groups = self._simulatable.match_maximum_length(s, 0)
-            if groups is not None:
+            next_index, groups = self._simulatable.match_maximum_length(s, index)
+            if groups is not None and index != next_index:
                 result.append(Match(index, next_index, s[index:next_index], groups))
-                if index == next_index:
-                    index += 1
-                else:
-                    index = next_index
+                index = next_index
+            else:
+                index += 1
         return result
 
 
