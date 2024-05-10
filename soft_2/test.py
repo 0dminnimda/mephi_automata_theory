@@ -84,9 +84,35 @@ def test_one_regex_full_match(regex, cases):
     test_one_regex_full_match_tdfa(regex, cases, tdfa)
 
 
+def test_one_regex_find_all(regex, cases):
+    global _total_test_cases
+    _total_test_cases += len(cases)
+
+    pattern = Pattern(regex)
+
+    for prompt, result in cases:
+        actual = pattern.findall(prompt)
+        result_all = [s for s, _ in result]
+        if actual != result_all:
+            _reported.append(
+                f"{prompt!r} expected to to return {result_all}, but got {actual} for {regex!r} [tDfa]"
+            )
+
+        actual = list(pattern.finditer(prompt))
+        actual_iter = [(match.string, match.groups) for match in actual]
+        if actual_iter != result:
+            _reported.append(
+                f"{prompt!r} expected to to return {result}, but got {actual_iter} for {regex!r} [tDfa]"
+            )
+
+
+
 def test_regexes(data_full_match, data_find_all):
     for regex, cases in data_full_match.items():
         test_one_regex_full_match(regex, cases)
+
+    for regex, cases in data_find_all.items():
+        test_one_regex_find_all(regex, cases)
 
     for report in _reported:
         print(report)
@@ -628,6 +654,31 @@ data_full_match = {
 
 
 data_find_all = {
+    "a*b": [
+        ("a", []),
+        ("ab", []),
+        ("abo", []),
+        ("abbaaabacb", [("abb", {}), ("aab", {}), ("acb", {})]),
+        ("", []),
+    ],
+    "a...": [
+        ("aaba", [("aa", {}), ("a", {})]),
+        ("aaa", [("aaa", {})]),
+        ("a", [("a", {})]),
+        ("", []),
+    ],
+    "(<fi>[ab])[ab]...": [
+        ("abca", [("ab", {"fi": ["a"]}), ("a", {"fi": ["a"]})]),
+        ("bababa abba!abcd", [("bababa", {"fi": ["b"]}), ("abba", {"fi": ["a"]}), ("ab", {"fi": ["a"]})]),
+        ("b", [("b", {"fi": ["b"]})]),
+        ("", []),
+    ],
+    "((<bs>b)|a)...": [
+        ("abca", [("ab", {"bs": [None, "b"]}), ("a", {"bs": [None]})]),
+        ("bababa abba!abcd", [("bababa", {"bs": ["b", None, "b", None, "b", None]}), ("abba", {"bs": [None, "b", "b", None]}), ("ab", {"bs": [None, "b"]})]),
+        ("b", [("b", {"bs": ["b"]})]),
+        ("", []),
+    ],
 }
 
 
