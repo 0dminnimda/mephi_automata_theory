@@ -900,14 +900,47 @@ class SimulatableTDFA(Generic[E]):
 
         max_state: State = max(self.transition_function.keys())
         memo = {}
-        paths = [
-            self._k_path_memo(
-                self.initial_state, fin, max_state, memo, dumpped_tran_map
-            )
-            for fin in self.final_states
-        ]
+        arguments = []
+        paths = []
+        for fin in self.final_states:
+            last = ""
+            for src, dst, K in self._k_path_generate_arguments(
+                self.initial_state, fin, max_state, arguments
+            )[::-1]:
+                last = self._k_path_memo(src, dst, K, memo, dumpped_tran_map)
+            paths.append(last)
         paths = [f"({p})" for p in paths if p is not None]
         return "|".join(set(paths))
+
+    def _k_path_generate_arguments(
+        self, source: State, target: State, K: State, prev_result
+    ) -> list[tuple[State, State, State]]:
+        triplet = (source, target, K)
+        if triplet in prev_result:
+            return prev_result
+        result = [triplet]
+        visited = set(prev_result + result)
+        queue = deque(result)
+        while queue:
+            source, target, K = queue.popleft()
+            if K == -1:
+                triplet = (source, target, K)
+                if triplet not in visited:
+                    result.append(triplet)
+                    visited.add(triplet)
+                continue
+            for triplet in [
+                (source, target, K - 1),
+                (source, K, K - 1),
+                (K, K, K - 1),
+                (K, target, K - 1),
+            ]:
+                if triplet not in visited:
+                    queue.append(triplet)
+                    result.append(triplet)
+                    visited.add(triplet)
+        prev_result.extend(result)
+        return result
 
     def _k_path_memo(
         self,
@@ -934,18 +967,18 @@ class SimulatableTDFA(Generic[E]):
             memo[cache_key] = result
             return result
 
-        first_part = self._k_path_memo(source, target, K - 1, memo, transition_map)
+        first_part = memo[(source, target, K - 1)]
 
         if source != K:
-            second_first = self._k_path_memo(source, K, K - 1, memo, transition_map)
+            second_first = memo[(source, K, K - 1)]
         else:
             second_first = ""
 
-        repeating = self._k_path_memo(K, K, K - 1, memo, transition_map)
+        repeating = memo[(K, K, K - 1)]
         repeating = f"({repeating})..." if repeating else ""  # ok for it to be None
 
         if K != target:
-            second_third = self._k_path_memo(K, target, K - 1, memo, transition_map)
+            second_third = memo[(K, target, K - 1)]
         else:
             second_third = ""
 
