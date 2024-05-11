@@ -5,6 +5,7 @@ from typing import TypeVar, Generic, Sequence, Iterable
 from collections import deque, defaultdict
 from copy import deepcopy
 from pprint import pprint
+from parser import ANY_SYMBOL_RE
 from pathlib import Path
 from simplify_ast import NGroup2Tags
 import classes as ast
@@ -754,6 +755,56 @@ class TDFA(Generic[E]):
             self.named_groups_to_tags,
         )
 
+    def complement(self) -> TDFA | None:
+        return deepcopy(self).turn_into_complement()
+
+    def turn_into_complement(self) -> TDFA | None:
+        # To implement a complement you need to create states
+        # so all transitions over the whole alphabet will lead to some state
+        # (wich can never result in any match!)
+        # Now swap final states and all other states between eachother
+        # now remove the states that can never lead to match and their transitions
+        # voila, you have a complemented regex!
+
+        # Shortcut: while matching if we know the previous tdfa could not have reached this state
+        # then we don't care about the structure from this point on
+        # We can just create one "error" state and connect all states to it, and loop inside it through all symbols
+
+        error_state: State = max(it.id for it in self.states) + 1
+        self.states.append(DetState(error_state, {}, []))
+        states_set = set(it.id for it in self.states)
+
+        new_transition_function = dict(self.transition_function)
+        ranges = defaultdict[State, list[ast.SymbolRanges]](list)
+        for (src, matcher), (_, _) in self.transition_function.items():
+            if not isinstance(matcher, ast.SymbolRanges):
+                return None
+            ranges[src].append(matcher)
+
+        for src, matchers in ranges.items():
+            # relies on the fact that the trsntisions were merged
+            all_ranges = []
+            for matcher in matchers:
+                assert matcher.accept, "the simulatable tdfa should be merged"
+                all_ranges.extend(matcher.ranges)
+            matcher = ast.SymbolRanges(tuple(all_ranges), True).with_minimized_ranges()
+            matcher = ast.SymbolRanges(matcher.ranges, False).minimized_as_accepting()
+            new_transition_function[(src, matcher)] = (error_state, [])
+
+        for src in states_set - ranges.keys():
+            new_transition_function[(src, ANY_SYMBOL_RE)] = (error_state, [])
+
+        new_transition_function[(error_state, ANY_SYMBOL_RE)] = (error_state, [])
+
+        self.transition_function = new_transition_function
+
+        # Let's not remove the possibly useless states that don't lead to match
+
+        self.final_states = states_set - self.final_states
+        self.final_function = {}
+
+        return self
+
 
 @dataclass
 class SingleRegisterStorage:
@@ -916,6 +967,21 @@ class SimulatableTDFA(Generic[E]):
         # print("gen", cache_key, result)
         memo[cache_key] = result
         return result
+
+    def to_partial_tdfa(self) -> TDFA:
+        return TDFA(
+            set(self.tag_to_regs.keys()),
+            list(DetState(it, {}, []) for it in set(self.transition_function.keys()) | set(self.final_states)),
+            self.initial_state,
+            self.final_states,
+            {i for i in range(len(self.registers))},
+            self.final_registers,
+            {(src, mat): (dst, op) for src, rest in self.transition_function.items() for mat, dst, op in rest},
+            self.final_function,
+            self.tag_to_regs,
+            self.named_groups_to_tags,
+            set(),
+        )
 
     def execute_regops(self, index: int, regops: RegOps) -> None:
         for regop in regops:

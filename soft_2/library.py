@@ -64,6 +64,12 @@ class Pattern:
             else:
                 index += 1
 
+    def complement(self) -> Pattern | None:
+        comp = self._simulatable.to_partial_tdfa().complement()
+        if comp is None:
+            return None
+        return Pattern(comp.as_simulatable())
+
     def reverse(self) -> Pattern | None:
         s = self.restore_regex_via_k_path()  # XXX: not efficient, but quite simple
         if s is None:
