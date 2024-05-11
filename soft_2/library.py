@@ -2,8 +2,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from parser import parse
-from tnfa import ast_to_tnfa
-from tdfa import tnfa_to_tdfa, SimulatableTDFA
+from tnfa import ast_to_tnfa, TNFA
+from tdfa import tnfa_to_tdfa, SimulatableTDFA, TDFA
+import classes as ast
 from typing import Iterable
 
 
@@ -21,11 +22,19 @@ class Match:
 
 @dataclass
 class Pattern:
-    def __init__(self, regex: str | SimulatableTDFA):
+    def __init__(self, regex: str | ast.RE | TNFA | TDFA | SimulatableTDFA):
         if isinstance(regex, str):
             self._simulatable = tnfa_to_tdfa(ast_to_tnfa(parse(regex))).as_simulatable()
-        else:
+        elif isinstance(regex, ast.RE):
+            self._simulatable = tnfa_to_tdfa(ast_to_tnfa(regex)).as_simulatable()
+        elif isinstance(regex, TNFA):
+            self._simulatable = tnfa_to_tdfa(regex).as_simulatable()
+        elif isinstance(regex, TDFA):
+            self._simulatable = regex.as_simulatable()
+        elif isinstance(regex, SimulatableTDFA):
             self._simulatable = regex
+        else:
+            raise TypeError(f"Invalid type for regex: {type(regex)}, supported types: str, RE, TNFA, TDFA, SimulatableTDFA")
 
     def match(self, s: str) -> Match | None:
         groups = self._simulatable.match_whole_string(s, 0)
