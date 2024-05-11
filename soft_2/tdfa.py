@@ -614,7 +614,9 @@ def topological_sort(regops: RegOps) -> bool:
 
 def tnfa_to_tdfa(tnfa: TNFA[E]) -> TDFA[E]:
     det = DeterminableTNFA()
-    return det.determinization(tnfa)
+    tdfa = det.determinization(tnfa)
+    tdfa.minimize_states()
+    return tdfa
 
 
 SimTranFunc = dict[State, list[tuple[Matcher, State, RegOps]]]
@@ -752,8 +754,6 @@ class TDFA(Generic[E]):
         else:
             regs = [SingleRegisterStorage() for _ in self.registers]
 
-        self.minimize_states()
-
         return SimulatableTDFA[E](
             self.initial_state,
             self.final_states,
@@ -768,82 +768,64 @@ class TDFA(Generic[E]):
     def minimize_states(self):
         # using Hopcroft's algorithm, afaik
 
-        all_trans = [(mat, regops) for (_, mat), (_, regops) in self.transition_function.items()]
-        # unique_matchers = DeterminableTNFA.get_all_unique_matchers(all_matchers)
-
-        sim_tran = self.to_simulation_transition_function()
+        all_trans = [(mat, tuple(regops)) for (_, mat), (_, regops) in self.transition_function.items()]
         states_set = {it.id for it in self.states}
 
-        groups = []
+        incoming_trans = defaultdict(set)
+        for (src, mat), (dst, regops) in self.transition_function.items():
+            incoming_trans[(mat, dst, tuple(regops))].add(src)
 
-        mapped_groups = defaultdict[int, set[State]](set)
-        for state in self.final_states:
-            mapped_groups[len(sim_tran.get(state, []))].add(state)
-        groups.extend(mapped_groups.values())
+        partitions = [self.final_states, states_set - self.final_states]
+        partitions = [it for it in partitions if it]
+        incomplete = partitions[:]
 
-        mapped_groups = defaultdict[int, set[State]](set)
-        for state in states_set - self.final_states:
-            mapped_groups[len(sim_tran.get(state, []))].add(state)
-        groups.extend(mapped_groups.values())
+        while incomplete:
+            A = incomplete.pop()
+            if len(A) == 1:
+                continue
+            for matcher, regops in all_trans:
+                X = set.union(*(incoming_trans[(matcher, in_state, regops)] for in_state in A))
+                if len(X) == 0:
+                    continue
+                for i, Y in enumerate(partitions):
+                    XandY = X & Y
+                    YnotX = Y - X
+                    if len(XandY) == 0 or len(YnotX) == 0:
+                        continue
+                    partitions[i : i+1] = [XandY, YnotX]
 
-        state_to_group = dict[State, int]()
-        for gi, group in enumerate(groups):
-            for state in group:
-                state_to_group[state] = gi
+                    try:
+                        index = incomplete.index(Y)
+                    except ValueError:
+                        index = -1
 
-        preudo_error_state = max(states_set) + 1
+                    if index != -1:
+                        incomplete[index : index+1] = [XandY, YnotX]
+                    else:
+                        if len(XandY) <= len(YnotX):
+                            incomplete.append(XandY)
+                        else:
+                            incomplete.append(YnotX)
 
-        something_should_be_split = True
-        while something_should_be_split:
-            something_should_be_split = False
-            for gi, group in enumerate(groups):
-                if len(group) == 1:
-                    continue  # cannot be furtheк subdivided
-
-                found_many_ways = False
-                for matcher, regops in all_trans:
-                    resulting = defaultdict[int, set[State]](set)
-                    for state in group:
-                        matched_anything = False
-                        for matcher_cur, next_state, regops_cur in sim_tran.get(state, []):
-                            if matcher_cur == matcher and regops == regops_cur:
-                            # if regops == regops_cur and DeterminableTNFA.matcher_can_pass(matcher_cur, matcher):
-                                matched_anything = True
-                                resulting[state_to_group[next_state]].add(state)
-                        if not matched_anything:
-                            resulting[preudo_error_state].add(state)
-                    if len(resulting) > 1:
-                        found_many_ways = True
-                        gi2 = len(groups)
-                        for group in resulting.values():
-                            for state in group:
-                                state_to_group[state] = gi2
-                            gi2 += 1
-                        groups[gi : gi + 1] = resulting.values()
-                        break
-                if found_many_ways:
-                    something_should_be_split = True
-                    break
-
-        if all(len(g) == 1 for g in groups):
+        if all(len(p) == 1 for p in partitions):
             return self
 
-        initial_state = -1
+        initial_state = 0
         final_states = set()
         state_map = dict[State, State]()
-        groups.sort(key=lambda x: min(x))
-        for new_state, group in enumerate(groups):
-            if self.initial_state in group:
+        partitions.sort(key=lambda x: min(x))
+        for new_state, partition in enumerate(partitions):
+            if self.initial_state in partition:
                 initial_state = new_state
 
-            if self.final_states & group:
-                assert len(self.final_states & group) == len(group), "non-final states cannot be grouped with final ones"
+            if self.final_states & partition:
+                assert len(self.final_states & partition) == len(partition), "non-final states cannot be grouped with final ones"
                 final_states.add(new_state)
 
-            for state in group:
+            for state in partition:
                 state_map[state] = new_state
 
-        self.states = [it for it in self.states if it.id in state_map]
+        self.states = [self.states[it] for it in set(state_map.values())]
         self.initial_state = initial_state
         self.final_states = final_states
         self.transition_function = {
@@ -853,28 +835,6 @@ class TDFA(Generic[E]):
         self.final_function = {state_map[q]: regops for q, regops in self.final_function.items()}
 
         return self
-
-        # # P := {F, Q \ F}
-        # # W := {F, Q \ F}
-        # W = set()
-
-        # while W:
-        #     A = W.pop()
-        #     for matcher in matchers:
-        #         # for from_state, to_state in dfa.transitions.items():
-        #         #     for toNum, value in to_state.items():
-        #         #         if c in value and toNum in A:
-        #         #             X.update(set([from_state]))
-        #         X = set of states for which a transition on c leads to a state in A
-        #         for each set Y in P for which X ∩ Y is nonempty and Y \ X is nonempty do
-        #             replace Y in P by the two sets X ∩ Y and Y \ X
-        #             if Y is in W
-        #                 replace Y in W by the same two sets
-        #             else
-        #                 if |X ∩ Y| <= |Y \ X|
-        #                     add X ∩ Y to W
-        #                 else
-        #                     add Y \ X to W
 
     def complement(self) -> TDFA | None:
         return deepcopy(self).turn_into_complement()
