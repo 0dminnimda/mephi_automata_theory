@@ -71,6 +71,13 @@ class Pattern:
         return Pattern(comp.as_simulatable())
 
     def reverse(self) -> Pattern | None:
+        # @Optimization:
+        # 1 Make tnfa from tdfa
+        # 2 Reverse all edges in the transition diagram.
+        # 3 The accepting state for the L^R automaton is the start state for the main automaton.
+        # 4 Create a new start state for the new automaton with epsilon transitions to reach of the accept states for the main automaton.
+        # 5 Convert this NFA back into a DFA.
+
         s = self.restore_regex_via_k_path()  # XXX: not efficient, but quite simple
         if s is None:
             return None
