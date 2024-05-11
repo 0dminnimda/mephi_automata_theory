@@ -32,20 +32,26 @@ class SymbolRanges(RE):
         return all(not (start <= char <= end) for start, end in self.ranges)
 
     @staticmethod
+    def next_char(s: str) -> str:
+        if s >= MAX_UNICODE:
+            return s
+        return chr(ord(s) + 1)
+
+    @staticmethod
+    def prev_char(s: str) -> str:
+        if s >= MAX_UNICODE or s <= MIN_UNICODE:
+            return s
+        return chr(ord(s) - 1)
+
+    @staticmethod
     def ranges_as_intervals(ranges: Iterable[tuple[str, str]]):
         for start, end in ranges:
-            if end >= MAX_UNICODE:
-                yield start, end
-            else:
-                yield start, chr(ord(end) + 1)
+            yield start, SymbolRanges.next_char(end)
 
     @staticmethod
     def intervals_as_ranges(ranges: Iterable[tuple[str, str]]):
         for start, end in ranges:
-            if end >= MAX_UNICODE:
-                yield start, end
-            else:
-                yield start, chr(ord(end) - 1)
+            yield start, SymbolRanges.prev_char(end)
 
     def with_minimized_ranges(self) -> SymbolRanges:
         # don't include the end, it simplifies intersecting
@@ -62,9 +68,11 @@ class SymbolRanges(RE):
         result = []
         prev = MIN_UNICODE
         for start, end in ranges:
-            result.append((prev, chr(ord(start) - 1)))
-            prev = chr(ord(end) + 1)
-        result.append((prev, MAX_UNICODE))
+            if start != MIN_UNICODE:
+                result.append((prev, self.prev_char(start)))
+            prev = self.next_char(end)
+        if prev != MAX_UNICODE:
+            result.append((prev, MAX_UNICODE))
         return SymbolRanges(tuple(result), True)
 
     @staticmethod
