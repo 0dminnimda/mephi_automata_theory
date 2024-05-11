@@ -734,6 +734,14 @@ data_full_match = {
         ("abcabdabf", True, {"ou": ["abc", "abd", "abf"], "in": ["c", "d", "f"]}),
         ("sdfsd", False, {}),
     ],
+    "*ф*и": [
+        ("", False, {}),
+        ("ffii", False, {}),
+        ("ффии", True, {}),
+        ("офщи", True, {}),
+        ("wф0и", True, {}),
+        ("pфи", False, {}),
+    ],
     # make_email_pattern(): [
     #     ("john.smith@example.com", True, {"local": ["john.smith"], "domain": ["example.com"]}),
     #     ("haha.com", False, {}),
