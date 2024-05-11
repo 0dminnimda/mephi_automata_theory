@@ -126,3 +126,49 @@ class NamedGroup(RE):
 @dataclass(frozen=True)
 class NamedGroupReference(RE):
     name: str
+
+
+@dataclass
+class Visitor:
+    def visit(self, node, *args, **kwargs):
+        method = "visit_" + node.__class__.__name__
+        visitor = getattr(self, method, None)
+        if visitor is None:
+            raise NotImplementedError(
+                f"visit method for node '{type(node).__name__}' is not implemented"
+            )
+        return visitor(node, *args, **kwargs)
+
+
+@dataclass
+class AstReverse(Visitor):
+    def visit_Epsilon(self, node: Epsilon):
+        return node
+
+    def visit_Tag(self, node: Tag):
+        return node
+
+    def visit_SymbolRanges(self, node: SymbolRanges):
+        return node
+
+    def visit_Concat(self, node: Concat):
+        return Concat(tuple(self.visit(it) for it in node.expressions[::-1]))
+
+    def visit_Or(self, node: Or):
+        return Or(tuple(self.visit(it) for it in node.expressions))
+
+    def visit_Repeat(self, node: Repeat):
+        return Repeat(self.visit(node.expr), node.min, node.max)
+
+    def visit_NamedGroup(self, node: NamedGroup):
+        return NamedGroup(node.name, self.visit(node.expr))
+
+    def visit_NamedGroupReference(self, node: NamedGroupReference):
+        return node
+
+
+_ast_reverse = AstReverse()
+
+
+def reverse_ast(node: RE) -> RE:
+    return _ast_reverse.visit(node)

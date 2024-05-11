@@ -55,11 +55,16 @@ def test_one_regex_full_match_tdfa(regex, cases, tdfa: TDFA):
         tdfa.dump_dot("tdfa.dot")
     pattern = Pattern(tdfa.as_simulatable())
     rere = pattern.restore_regex_via_k_path()
+
     if rere is not None:
         _total_test_cases += len(cases)
         pattern_2 = Pattern(rere)
     else:
         pattern_2 = None
+
+    pattern_3 = pattern.reverse()
+    if pattern_3 is not None:
+        _total_test_cases += len(cases)
 
     for prompt, should_match, groups in cases:
         match = pattern.match(prompt)
@@ -85,6 +90,15 @@ def test_one_regex_full_match_tdfa(regex, cases, tdfa: TDFA):
             if (match2 is not None) != should_match:
                 _reported.append(
                     f"{prompt!r} should {'not ' if not should_match else ''}match {rere!r} (from {regex!r}) [tDfa]"
+                )
+
+        if pattern_3 is not None:
+            prompt3 = prompt[::-1]
+            match3 = pattern_3.match(prompt3)
+
+            if (match3 is not None) != should_match:
+                _reported.append(
+                    f"{prompt3!r} should {'not ' if not should_match else ''}match reversed({regex!r}) [tDfa]"
                 )
 
 

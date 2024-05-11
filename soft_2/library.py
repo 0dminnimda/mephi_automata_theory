@@ -64,6 +64,12 @@ class Pattern:
             else:
                 index += 1
 
+    def reverse(self) -> Pattern | None:
+        s = self.restore_regex_via_k_path()  # XXX: not efficient, but quite simple
+        if s is None:
+            return None
+        return Pattern(ast.reverse_ast(parse(s)))
+
     def restore_regex_via_k_path(self) -> str | None:
         return self._simulatable.restore_regular_expression_via_k_path()
 

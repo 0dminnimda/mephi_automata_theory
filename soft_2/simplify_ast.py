@@ -6,19 +6,7 @@ from helpers import iter_unique
 
 
 @dataclass
-class Visitor:
-    def visit(self, node, *args, **kwargs):
-        method = "visit_" + node.__class__.__name__
-        visitor = getattr(self, method, None)
-        if visitor is None:
-            raise NotImplementedError(
-                f"visit method for node '{type(node).__name__}' is not implemented"
-            )
-        return visitor(node, *args, **kwargs)
-
-
-@dataclass
-class AstLength(Visitor):
+class AstLength(ast.Visitor):
     cache: dict[ast.RE, int | None] = field(default_factory=dict)
     groups: dict[str, int | None] = field(default_factory=dict)
 
@@ -91,7 +79,7 @@ NGroup2Tags = dict[str, tuple[AnyTag, AnyTag]]
 
 
 @dataclass
-class SimplifyAst(Visitor):
+class SimplifyAst(ast.Visitor):
     named_groups_to_tags: NGroup2Tags = field(default_factory=dict)
     next_tag: Tag = 0
     ast_length: AstLength = field(default_factory=AstLength)

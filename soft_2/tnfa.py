@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from typing import Protocol, TypeVar, Generic, Sequence, NamedTuple
 from collections import deque, defaultdict
 from pathlib import Path
-from simplify_ast import Visitor, Tag, FixedTag, AnyTag, NGroup2Tags, SimplifyAst
+from simplify_ast import Tag, FixedTag, AnyTag, NGroup2Tags, SimplifyAst
 import parser
 
 from copy import deepcopy
@@ -337,7 +337,7 @@ class SimulatableTNFA(Generic[E]):
         return None
 
 
-class Ast2Tnfa(Visitor):
+class Ast2Tnfa(ast.Visitor):
     """
     Augmented Thompson's construction for TNFA
     """
