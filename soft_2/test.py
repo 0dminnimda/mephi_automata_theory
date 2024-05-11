@@ -167,7 +167,7 @@ def test_regexes(data_full_match, data_find_all):
         print(f"!!! All {_total_test_cases} test cases passed !!!")
 
 
-def make_email_pattern():
+def make_giant_email_pattern():
     local_name = r"[a-z0-9]+"
 
     dotted_local = f"{local_name}(.{local_name})..."
@@ -210,6 +210,16 @@ def make_email_pattern():
     regular = f"(<local>{local})%s%...@%s%...(<domain>{domain})"
 
     return regular
+
+
+def make_email_pattern():
+    local_name = r"[a-z0-9]+"
+    local = f"{local_name}(.{local_name})..."
+
+    dnss_label = "[a-z0-9]([a-z0-9%-%]...[a-z0-9])?"
+    domain = rf"({dnss_label}.)+{dnss_label}"
+
+    return f"(<local>{local})%s%...@%s%...(<domain>{domain})"
 
 
 data_full_match = {
@@ -757,10 +767,10 @@ data_full_match = {
         ("wф0и", True, {}),
         ("pфи", False, {}),
     ],
-    # make_email_pattern(): [
-    #     ("john.smith@example.com", True, {"local": ["john.smith"], "domain": ["example.com"]}),
-    #     ("haha.com", False, {}),
-    # ],
+    make_email_pattern(): [
+        ("john.smith@example.com", True, {"local": ["john.smith"], "domain": ["example.com"]}),
+        ("haha.com", False, {}),
+    ],
 }
 
 
