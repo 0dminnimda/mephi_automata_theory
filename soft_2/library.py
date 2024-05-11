@@ -24,14 +24,14 @@ class Match:
 class Pattern:
     def __init__(self, regex: str | ast.RE | TNFA | TDFA | SimulatableTDFA):
         if isinstance(regex, str):
-            self._simulatable = tnfa_to_tdfa(ast_to_tnfa(parse(regex))).as_simulatable()
-        elif isinstance(regex, ast.RE):
-            self._simulatable = tnfa_to_tdfa(ast_to_tnfa(regex)).as_simulatable()
-        elif isinstance(regex, TNFA):
-            self._simulatable = tnfa_to_tdfa(regex).as_simulatable()
-        elif isinstance(regex, TDFA):
-            self._simulatable = regex.as_simulatable()
-        elif isinstance(regex, SimulatableTDFA):
+            regex = parse(regex)
+        if isinstance(regex, ast.RE):
+            regex = ast_to_tnfa(regex)
+        if isinstance(regex, TNFA):
+            regex = tnfa_to_tdfa(regex)
+        if isinstance(regex, TDFA):
+            regex = regex.as_simulatable()
+        if isinstance(regex, SimulatableTDFA):
             self._simulatable = regex
         else:
             raise TypeError(f"Invalid type for regex: {type(regex)}, supported types: str, RE, TNFA, TDFA, SimulatableTDFA")
