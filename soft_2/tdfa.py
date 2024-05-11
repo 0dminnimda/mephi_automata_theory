@@ -163,7 +163,8 @@ class DeterminableTNFA(Generic[E]):
     def determinization(self, tnfa: TNFA[E]):
         self.tnfa = tnfa
 
-        all_matchers = self.get_all_unique_matchers_and_update_transitions()
+        self.update_tnfa_transitions_as_accepting()
+        all_matchers = self.get_all_unique_matchers(m for _, m, _ in self.tnfa.symbol_transitions)
 
         self.ordered_eps = tnfa.get_ordered_mapped_epsilon_transitions()
         self.double_mapped_sym = tnfa.get_double_mapped_symbol_transitions()
@@ -269,22 +270,27 @@ class DeterminableTNFA(Generic[E]):
 
         self.transition_function = new_transition_function
 
-    def get_all_unique_matchers_and_update_transitions(self) -> list[Matcher]:
+    def update_tnfa_transitions_as_accepting(self):
+        symbol_transitions = set()
+        for a, matcher, b in self.tnfa.symbol_transitions:
+            if isinstance(matcher, ast.SymbolRanges):
+                matcher = matcher.minimized_as_accepting()
+            symbol_transitions.add((a, matcher, b))
+        self.tnfa.symbol_transitions = symbol_transitions
+
+    @staticmethod
+    def get_all_unique_matchers(matchers: Iterable[Matcher]) -> list[Matcher]:
         # 1. All non-symbol-ranges (group matchers) are unique
         # 2. In the symbol-ranges we have to extract non-overlapping ones,
         #    for exmaple, if we have [a-d], [a-ho], [e-h] we need to check have [a-d], [e-h], [o]
 
-        symbol_transitions = set()
         range_matchers = list[tuple[str, str]]()
         other_matchers = list[Matcher]()
-        for a, matcher, b in self.tnfa.symbol_transitions:
+        for matcher in matchers:
             if isinstance(matcher, ast.SymbolRanges):
-                matcher = matcher.minimized_as_accepting()
                 range_matchers.extend(matcher.ranges)
             else:
                 other_matchers.append(matcher)
-            symbol_transitions.add((a, matcher, b))
-        self.tnfa.symbol_transitions = symbol_transitions
 
         non_overlaping = split_overlapping_intervals(
             list(ast.SymbolRanges.ranges_as_intervals(range_matchers))
@@ -643,7 +649,9 @@ class TDFA(Generic[E]):
         )
         result.append("edge[arrowhead=vee fontname=Courier]\n")
         result.append("\n")
-        result.append(f"n [shape=point xlabel=\"Start\"] n -> n{self.initial_state} [style=dotted]\n")
+        result.append(
+            f'n [shape=point xlabel="Start"] n -> n{self.initial_state} [style=dotted]\n'
+        )
 
         for (q, s), (p, o) in self.transition_function.items():
             ops = " ".join(f"{op}" for op in o)
@@ -744,6 +752,8 @@ class TDFA(Generic[E]):
         else:
             regs = [SingleRegisterStorage() for _ in self.registers]
 
+        self.minimize_states()
+
         return SimulatableTDFA[E](
             self.initial_state,
             self.final_states,
@@ -754,6 +764,117 @@ class TDFA(Generic[E]):
             regs,
             self.named_groups_to_tags,
         )
+
+    def minimize_states(self):
+        # using Hopcroft's algorithm, afaik
+
+        all_trans = [(mat, regops) for (_, mat), (_, regops) in self.transition_function.items()]
+        # unique_matchers = DeterminableTNFA.get_all_unique_matchers(all_matchers)
+
+        sim_tran = self.to_simulation_transition_function()
+        states_set = {it.id for it in self.states}
+
+        groups = []
+
+        mapped_groups = defaultdict[int, set[State]](set)
+        for state in self.final_states:
+            mapped_groups[len(sim_tran.get(state, []))].add(state)
+        groups.extend(mapped_groups.values())
+
+        mapped_groups = defaultdict[int, set[State]](set)
+        for state in states_set - self.final_states:
+            mapped_groups[len(sim_tran.get(state, []))].add(state)
+        groups.extend(mapped_groups.values())
+
+        state_to_group = dict[State, int]()
+        for gi, group in enumerate(groups):
+            for state in group:
+                state_to_group[state] = gi
+
+        preudo_error_state = max(states_set) + 1
+
+        something_should_be_split = True
+        while something_should_be_split:
+            something_should_be_split = False
+            for gi, group in enumerate(groups):
+                if len(group) == 1:
+                    continue  # cannot be furtheк subdivided
+
+                found_many_ways = False
+                for matcher, regops in all_trans:
+                    resulting = defaultdict[int, set[State]](set)
+                    for state in group:
+                        matched_anything = False
+                        for matcher_cur, next_state, regops_cur in sim_tran.get(state, []):
+                            if matcher_cur == matcher and regops == regops_cur:
+                            # if regops == regops_cur and DeterminableTNFA.matcher_can_pass(matcher_cur, matcher):
+                                matched_anything = True
+                                resulting[state_to_group[next_state]].add(state)
+                        if not matched_anything:
+                            resulting[preudo_error_state].add(state)
+                    if len(resulting) > 1:
+                        found_many_ways = True
+                        gi2 = len(groups)
+                        for group in resulting.values():
+                            for state in group:
+                                state_to_group[state] = gi2
+                            gi2 += 1
+                        groups[gi : gi + 1] = resulting.values()
+                        break
+                if found_many_ways:
+                    something_should_be_split = True
+                    break
+
+        if all(len(g) == 1 for g in groups):
+            return self
+
+        initial_state = -1
+        final_states = set()
+        state_map = dict[State, State]()
+        groups.sort(key=lambda x: min(x))
+        for new_state, group in enumerate(groups):
+            if self.initial_state in group:
+                initial_state = new_state
+
+            if self.final_states & group:
+                assert len(self.final_states & group) == len(group), "non-final states cannot be grouped with final ones"
+                final_states.add(new_state)
+
+            for state in group:
+                state_map[state] = new_state
+
+        self.states = [it for it in self.states if it.id in state_map]
+        self.initial_state = initial_state
+        self.final_states = final_states
+        self.transition_function = {
+            (state_map[src], mat): (state_map[dst], regops)
+            for (src, mat), (dst, regops) in self.transition_function.items()
+        }
+        self.final_function = {state_map[q]: regops for q, regops in self.final_function.items()}
+
+        return self
+
+        # # P := {F, Q \ F}
+        # # W := {F, Q \ F}
+        # W = set()
+
+        # while W:
+        #     A = W.pop()
+        #     for matcher in matchers:
+        #         # for from_state, to_state in dfa.transitions.items():
+        #         #     for toNum, value in to_state.items():
+        #         #         if c in value and toNum in A:
+        #         #             X.update(set([from_state]))
+        #         X = set of states for which a transition on c leads to a state in A
+        #         for each set Y in P for which X ∩ Y is nonempty and Y \ X is nonempty do
+        #             replace Y in P by the two sets X ∩ Y and Y \ X
+        #             if Y is in W
+        #                 replace Y in W by the same two sets
+        #             else
+        #                 if |X ∩ Y| <= |Y \ X|
+        #                     add X ∩ Y to W
+        #                 else
+        #                     add Y \ X to W
 
     def complement(self) -> TDFA | None:
         return deepcopy(self).turn_into_complement()
@@ -1006,12 +1127,19 @@ class SimulatableTDFA(Generic[E]):
     def to_partial_tdfa(self) -> TDFA:
         return TDFA(
             set(self.tag_to_regs.keys()),
-            list(DetState(it, {}, []) for it in set(self.transition_function.keys()) | set(self.final_states)),
+            list(
+                DetState(it, {}, [])
+                for it in set(self.transition_function.keys()) | set(self.final_states)
+            ),
             self.initial_state,
             self.final_states,
             {i for i in range(len(self.registers))},
             self.final_registers,
-            {(src, mat): (dst, op) for src, rest in self.transition_function.items() for mat, dst, op in rest},
+            {
+                (src, mat): (dst, op)
+                for src, rest in self.transition_function.items()
+                for mat, dst, op in rest
+            },
             self.final_function,
             self.tag_to_regs,
             self.named_groups_to_tags,
