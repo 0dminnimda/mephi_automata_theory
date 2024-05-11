@@ -899,6 +899,8 @@ class SimulatableTDFA(Generic[E]):
             dumpped_tran_map[key] = result
 
         max_state: State = max(self.transition_function.keys())
+        if max_state >= 500:
+            return None
         memo = {}
         arguments = []
         paths = []
