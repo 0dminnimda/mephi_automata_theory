@@ -899,6 +899,7 @@ def test_dfa3():
     tnfa.dump_dot("tnfa2.dot")
     tdfa = tnfa_to_tdfa(tnfa)
     tdfa.dump_dot("tdfa2.dot")
+    sim = tdfa.as_simulatable()
 
 
 # fmt: on
