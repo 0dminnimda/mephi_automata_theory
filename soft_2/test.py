@@ -59,12 +59,16 @@ def test_one_regex_full_match_tdfa(regex, cases, tdfa: TDFA):
     if rere is not None:
         _total_test_cases += len(cases)
         pattern_2 = Pattern(rere)
+        if DUMP_DOT:
+            pattern_2._simulatable.to_partial_tdfa().dump_dot("tdfa_restore.dot")
     else:
         pattern_2 = None
 
     pattern_3 = pattern.reverse()
     if pattern_3 is not None:
         _total_test_cases += len(cases)
+        if DUMP_DOT:
+            pattern_3._simulatable.to_partial_tdfa().dump_dot("tdfa_reverse.dot")
 
     pattern_4 = pattern.complement()
     if pattern_4 is not None:
