@@ -620,6 +620,7 @@ def tnfa_to_tdfa(tnfa: TNFA[E]) -> TDFA[E]:
 
 
 SimTranFunc = dict[State, list[tuple[Matcher, State, RegOps]]]
+TDFATranFunc = dict[tuple[State, Matcher], tuple[State, RegOps]]
 
 
 @dataclass
@@ -635,7 +636,7 @@ class TDFA(Generic[E]):
     final_states: set[State]
     registers: set[Register]
     final_registers: dict[Tag, Register]
-    transition_function: dict[tuple[State, Matcher], tuple[State, RegOps]]
+    transition_function: TDFATranFunc
     final_function: dict[State, RegOps]
 
     tag_to_regs: dict[Tag, list[Register]]
@@ -839,27 +840,17 @@ class TDFA(Generic[E]):
     def complement(self) -> TDFA | None:
         return deepcopy(self).turn_into_complement()
 
-    def turn_into_complement(self) -> TDFA | None:
-        # To implement a complement you need to create states
-        # so all transitions over the whole alphabet will lead to some state
-        # (wich can never result in any match!)
-        # Now swap final states and all other states between eachother
-        # now remove the states that can never lead to match and their transitions
-        # voila, you have a complemented regex!
-
-        # Shortcut: while matching if we know the previous tdfa could not have reached this state
-        # then we don't care about the structure from this point on
-        # We can just create one "error" state and connect all states to it, and loop inside it through all symbols
-
-        error_state: State = max(it.id for it in self.states) + 1
-        self.states.append(DetState(error_state, {}, []))
+    def add_temporary_error_state(self) -> tuple[State, set[State], TDFATranFunc]:
         states_set = set(it.id for it in self.states)
+        error_state: State = len(self.states)
+        assert error_state not in states_set, "state ids do not correspond to indices in the state list"
+        states_set.add(error_state)
 
         new_transition_function = dict(self.transition_function)
         ranges = defaultdict[State, list[ast.SymbolRanges]](list)
-        for (src, matcher), (_, _) in self.transition_function.items():
+        for (src, matcher), _ in self.transition_function.items():
             if not isinstance(matcher, ast.SymbolRanges):
-                return None
+                continue
             ranges[src].append(matcher)
 
         for src, matchers in ranges.items():
@@ -877,9 +868,29 @@ class TDFA(Generic[E]):
 
         new_transition_function[(error_state, ANY_SYMBOL_RE)] = (error_state, [])
 
+        return error_state, states_set, new_transition_function
+
+    def turn_into_complement(self) -> TDFA | None:
+        # To implement a complement you need to create states
+        # so all transitions over the whole alphabet will lead to some state
+        # (wich can never result in any match!)
+        # Now swap final states and all other states between eachother
+        # now remove the states that can never lead to match and their transitions
+        # voila, you have a complemented regex!
+
+        # Shortcut: while matching if we know the previous tdfa could not have reached this state
+        # then we don't care about the structure from this point on
+        # We can just create one "error" state and connect all states to it, and loop inside it through all symbols
+
+        for (_, matcher), _ in self.transition_function.items():
+            if not isinstance(matcher, ast.SymbolRanges):
+                return None
+
+        error_state, states_set, new_transition_function = self.add_temporary_error_state()
+        self.states.append(DetState(error_state, {}, []))
         self.transition_function = new_transition_function
 
-        # Let's not remove the possibly useless states that don't lead to match
+        # For now I don't not remove the possibly useless states that can't lead to match
 
         self.final_states = states_set - self.final_states
         self.final_function = {}
