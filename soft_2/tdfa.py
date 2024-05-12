@@ -767,7 +767,7 @@ class TDFA(Generic[E]):
         )
 
     def minimize_states(self):
-        # using Hopcroft's algorithm, afaik
+        # using Hopcroft's algorithm (pseudocode from Yingjie XU)
 
         all_trans = [(mat, tuple(regops)) for (_, mat), (_, regops) in self.transition_function.items()]
         states_set = {it.id for it in self.states}
@@ -778,33 +778,36 @@ class TDFA(Generic[E]):
 
         partitions = [self.final_states, states_set - self.final_states]
         partitions = [it for it in partitions if it]
-        incomplete = partitions[:]
+        incomplete = deque(partitions[:])
 
         while incomplete:
-            A = incomplete.pop()
+            S = incomplete.pop()
             for matcher, regops in all_trans:
-                X = set.union(*(incoming_trans[(matcher, in_state, regops)] for in_state in A))
-                if len(X) == 0:
+                La = set.union(*(incoming_trans[(matcher, in_state, regops)] for in_state in S))
+                if len(La) == 0:
                     continue
-                for i, Y in enumerate(partitions):
-                    XandY = X & Y
-                    YnotX = Y - X
-                    if len(XandY) == 0 or len(YnotX) == 0:
+                for i in range(len(partitions)):
+                    R = partitions[i]
+                    R1 = La & R
+                    R2 = R - R1
+                    if len(R1) == 0 or len(R2) == 0:
                         continue
-                    partitions[i : i+1] = [XandY, YnotX]
+                    partitions[i] = R1
+                    partitions.append(R2)
 
                     try:
-                        index = incomplete.index(Y)
+                        index = incomplete.index(R)
                     except ValueError:
                         index = -1
 
                     if index != -1:
-                        incomplete[index : index+1] = [XandY, YnotX]
+                        incomplete[index] = R1
+                        incomplete.append(R2)
                     else:
-                        if len(XandY) <= len(YnotX):
-                            incomplete.append(XandY)
+                        if len(R1) <= len(R2):
+                            incomplete.append(R1)
                         else:
-                            incomplete.append(YnotX)
+                            incomplete.append(R2)
 
         if all(len(p) <= 1 for p in partitions):
             return self
