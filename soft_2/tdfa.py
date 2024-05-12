@@ -21,7 +21,7 @@ from tnfa import (
     dump_matcher,
 )
 from enum import Enum, auto
-from helpers import split_overlapping_intervals
+from helpers import split_overlapping_intervals, set_intersection_and_difference
 import tnfa
 
 
@@ -788,8 +788,7 @@ class TDFA(Generic[E]):
                     continue
                 for i in range(len(partitions)):
                     R = partitions[i]
-                    R1 = incoming & R
-                    R2 = R - R1
+                    R1, R2 = set_intersection_and_difference(R, incoming)
                     if len(R1) == 0 or len(R2) == 0:
                         continue
                     partitions[i] = R1

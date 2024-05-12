@@ -4,6 +4,9 @@ from collections import deque
 from typing import TypeVar, Protocol, Any, Sequence
 
 
+T = TypeVar("T")
+
+
 class Comparable(Protocol):
     def __lt__(self, other: Any, /) -> bool: ...
     def __le__(self, other: Any, /) -> bool: ...
@@ -89,3 +92,13 @@ def iter_unique(x):
             continue
         seen.add(it)
         yield it
+
+
+def set_intersection_and_difference(s1: set[T], s2: set[T]) -> tuple[set[T], set[T]]:
+    r"""
+    Returns intersection s1 ∩ s2 and the difference s1 \ s2.
+    SEE: https://stackoverflow.com/a/68165720/12141949
+    """
+    difference = s1 - s2
+    intersection = s1 - difference
+    return intersection, difference
