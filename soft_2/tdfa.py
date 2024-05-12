@@ -1047,18 +1047,15 @@ class SimulatableTDFA(Generic[E]):
     ) -> str | None:
 
         cache_key = (source, target, K)
-        # print("in", cache_key)
 
         cache = memo.get(cache_key)
         if cache is not None:
-            # print("cache", cache_key, cache)
             return cache
 
         if K == -1:
             result = transition_map.get((source, target), "")
             if not result and source != target:
                 result = None
-            # print("k==-1", cache_key, result)
             memo[cache_key] = result
             return result
 
@@ -1092,7 +1089,6 @@ class SimulatableTDFA(Generic[E]):
         else:
             result = second_part
 
-        # print("gen", cache_key, result)
         memo[cache_key] = result
         return result
 
