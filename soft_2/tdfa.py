@@ -782,8 +782,6 @@ class TDFA(Generic[E]):
 
         while incomplete:
             A = incomplete.pop()
-            if len(A) == 1:
-                continue
             for matcher, regops in all_trans:
                 X = set.union(*(incoming_trans[(matcher, in_state, regops)] for in_state in A))
                 if len(X) == 0:
