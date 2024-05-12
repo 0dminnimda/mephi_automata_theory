@@ -783,12 +783,12 @@ class TDFA(Generic[E]):
         while incomplete:
             S = incomplete.pop()
             for matcher, regops in all_trans:
-                La = set.union(*(incoming_trans[(matcher, in_state, regops)] for in_state in S))
-                if len(La) == 0:
+                incoming = set.union(*(incoming_trans[(matcher, in_state, regops)] for in_state in S))
+                if len(incoming) == 0:
                     continue
                 for i in range(len(partitions)):
                     R = partitions[i]
-                    R1 = La & R
+                    R1 = incoming & R
                     R2 = R - R1
                     if len(R1) == 0 or len(R2) == 0:
                         continue
