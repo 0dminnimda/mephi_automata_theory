@@ -806,7 +806,7 @@ class TDFA(Generic[E]):
                         else:
                             incomplete.append(YnotX)
 
-        if all(len(p) == 1 for p in partitions):
+        if all(len(p) <= 1 for p in partitions):
             return self
 
         initial_state = 0
