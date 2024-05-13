@@ -58,6 +58,7 @@ def dump_pair(tag: AnyTag) -> str:
 
 DOT_ESCAPE_TABLE = {
     '"': '\\"',
+    '\\': '\\\\',
     "]": "\\]",
     "[": "\\[",
 }

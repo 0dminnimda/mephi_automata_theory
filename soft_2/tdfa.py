@@ -658,12 +658,14 @@ class TDFA(Generic[E]):
 
         for (q, s), (p, o) in self.transition_function.items():
             ops = " ".join(f"{op}" for op in o)
+            ops = ops.translate(tnfa.DOT_ESCAPE_TRANS)
             if ops:
                 ops = "\\n" + ops
             result.append(f'n{q} -> n{p} [label="{dump_matcher(s)}{ops}"];\n')
 
         for q, o in self.final_function.items():
             ops = " ".join(str(op) for op in o)
+            ops = ops.translate(tnfa.DOT_ESCAPE_TRANS)
             result.append(
                 f'subgraph {{ rank=same n{q} dr{q} [shape=rect style=dotted fillcolor=transparent label="{ops}"] n{q}:s -> dr{q}:n [style=dotted minlen=0]}}\n'
             )
