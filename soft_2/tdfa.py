@@ -39,10 +39,10 @@ class RegVal(Enum):
             return "n"
         return "p"
 
-    def as_suffix(self) -> str:
-        if self is RegVal.NOTHING:
-            return "↓"  # "V"
-        return "↑"  # "A"
+    def as_suffix(self, ascii: bool = False) -> str:
+        if ascii:
+            return "<X" if self is RegVal.NOTHING else "<C"
+        return "↓" if self is RegVal.NOTHING else "↑"
 
     def evaluate(self, index: int) -> int | None:
         if self is RegVal.NOTHING:
