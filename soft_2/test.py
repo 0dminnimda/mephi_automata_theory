@@ -153,7 +153,6 @@ def test_one_regex_find_all(regex, cases):
             )
 
 
-
 def test_regexes(data_full_match, data_find_all):
     for regex, cases in data_full_match.items():
         test_one_regex_full_match(regex, cases)
@@ -216,6 +215,9 @@ def make_giant_email_pattern():
     return regular
 
 
+GIANT_EMAIL_PATTERN = make_giant_email_pattern()
+
+
 def make_email_pattern():
     local_name = r"[a-z0-9]+"
     local = f"{local_name}(.{local_name})..."
@@ -224,6 +226,9 @@ def make_email_pattern():
     domain = rf"({dnss_label}.)+{dnss_label}"
 
     return f"(<local>{local})%s%...@%s%...(<domain>{domain})"
+
+
+EMAIL_PATTERN = make_email_pattern()
 
 
 data_full_match = {
@@ -771,8 +776,20 @@ data_full_match = {
         ("wф0и", True, {}),
         ("pфи", False, {}),
     ],
-    make_email_pattern(): [
-        ("john.smith@example.com", True, {"local": ["john.smith"], "domain": ["example.com"]}),
+    EMAIL_PATTERN: [
+        (
+            "john.smith@example.com",
+            True,
+            {"local": ["john.smith"], "domain": ["example.com"]},
+        ),
+        ("haha.com", False, {}),
+    ],
+    GIANT_EMAIL_PATTERN: [
+        (
+            "john.smith@example.com",
+            True,
+            {"local": ["john.smith"], "domain": ["example.com"]},
+        ),
         ("haha.com", False, {}),
     ],
 }
@@ -803,6 +820,27 @@ data_find_all = {
         ("bababa abba!abcd", [("bababa", {"bs": ["b", None, "b", None, "b", None]}), ("abba", {"bs": [None, "b", "b", None]}), ("ab", {"bs": [None, "b"]})]),
         ("b", [("b", {"bs": ["b"]})]),
         ("", []),
+    ],
+    EMAIL_PATTERN: [
+        (
+            "john.smith@example.com",
+            [
+                (
+                    "john.smith@example.com",
+                    {"local": ["john.smith"], "domain": ["example.com"]},
+                )
+            ],
+        ),
+        ("haha.com", []),
+        (
+            "Hello! Here's my emial: my.cool.email.address@mail.ru! Feel free to reach me!",
+            [
+                (
+                    "my.cool.email.address@mail.ru",
+                    {"local": ["john.smith"], "domain": ["example.com"]},
+                )
+            ],
+        ),
     ],
 }
 
