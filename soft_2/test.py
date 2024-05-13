@@ -758,7 +758,7 @@ data_full_match = {
         ("ff", False, {}),
     ],
     "(<ou>ab(<in>[c-f]))...": [
-        ("", True, {'in': [None], 'ou': [None]}),
+        ("", True, {"in": [None], "ou": [None]}),
         ("b", False, {}),
         ("a", False, {}),
         ("aa", False, {}),
@@ -811,13 +811,23 @@ data_find_all = {
     ],
     "(<fi>[ab])[ab]...": [
         ("abca", [("ab", {"fi": ["a"]}), ("a", {"fi": ["a"]})]),
-        ("bababa abba!abcd", [("bababa", {"fi": ["b"]}), ("abba", {"fi": ["a"]}), ("ab", {"fi": ["a"]})]),
+        (
+            "bababa abba!abcd",
+            [("bababa", {"fi": ["b"]}), ("abba", {"fi": ["a"]}), ("ab", {"fi": ["a"]})],
+        ),
         ("b", [("b", {"fi": ["b"]})]),
         ("", []),
     ],
     "((<bs>b)|a)...": [
         ("abca", [("ab", {"bs": [None, "b"]}), ("a", {"bs": [None]})]),
-        ("bababa abba!abcd", [("bababa", {"bs": ["b", None, "b", None, "b", None]}), ("abba", {"bs": [None, "b", "b", None]}), ("ab", {"bs": [None, "b"]})]),
+        (
+            "bababa abba!abcd",
+            [
+                ("bababa", {"bs": ["b", None, "b", None, "b", None]}),
+                ("abba", {"bs": [None, "b", "b", None]}),
+                ("ab", {"bs": [None, "b"]}),
+            ],
+        ),
         ("b", [("b", {"bs": ["b"]})]),
         ("", []),
     ],
