@@ -351,9 +351,11 @@ class DeterminableTNFA(Generic[E]):
         return result
 
     def precedence(self, confs: DetConfs) -> DetPrecs:
-        # We create the nodes in such a way that the nodes
-        # that are should be considered later in leftmost greed
+        # We create the nodes in such a way, so the nodes
+        # which should be considered later in leftmost greed
         # are numerically smaller
+        # Thus we should check the bigger numbers first
+        # FIXME but for some reason reversing makes it almost fully rightmost greedy
         return sorted(confs.keys())
 
     def add_state(self, regops: RegOps) -> DetState:
