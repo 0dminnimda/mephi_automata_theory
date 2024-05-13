@@ -847,7 +847,7 @@ data_find_all = {
             [
                 (
                     "my.cool.email.address@mail.ru",
-                    {"local": ["john.smith"], "domain": ["example.com"]},
+                    {"local": ["my.cool.email.address"], "domain": ["mail.ru"]},
                 )
             ],
         ),
