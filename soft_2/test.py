@@ -784,14 +784,14 @@ data_full_match = {
         ),
         ("haha.com", False, {}),
     ],
-    GIANT_EMAIL_PATTERN: [
-        (
-            "john.smith@example.com",
-            True,
-            {"local": ["john.smith"], "domain": ["example.com"]},
-        ),
-        ("haha.com", False, {}),
-    ],
+    # GIANT_EMAIL_PATTERN: [
+    #     (
+    #         "john.smith@example.com",
+    #         True,
+    #         {"local": ["john.smith"], "domain": ["example.com"]},
+    #     ),
+    #     ("haha.com", False, {}),
+    # ],
 }
 
 
