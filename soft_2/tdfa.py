@@ -170,6 +170,8 @@ class DeterminableTNFA(Generic[E]):
         self.double_mapped_sym = tnfa.get_double_mapped_symbol_transitions()
 
         r0 = {tag: self.get_next_reg() for tag in tnfa.tags}
+        for tag, reg in r0.items():
+            self.tag_to_regs[tag].append(reg)
         self.final_registers = {tag: self.get_next_reg() for tag in tnfa.tags}
         for tag, reg in self.final_registers.items():
             self.tag_to_regs[tag].append(reg)
