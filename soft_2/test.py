@@ -24,8 +24,6 @@ def test_one_regex_full_match_tnfa(regex, cases, tnfa: TNFA):
     global _total_test_cases
     _total_test_cases += len(cases)
 
-    if DUMP_DOT:
-        tnfa.dump_dot("tnfa.dot")
     sim = tnfa.as_simulatable()
 
     for prompt, should_match, groups in cases:
@@ -51,8 +49,6 @@ def test_one_regex_full_match_tdfa(regex, cases, tdfa: TDFA):
     global _total_test_cases
     _total_test_cases += len(cases)
 
-    if DUMP_DOT:
-        tdfa.dump_dot("tdfa.dot")
     pattern = Pattern(tdfa.as_simulatable())
     rere = pattern.restore_regex_via_k_path()
 
@@ -125,6 +121,11 @@ def test_one_regex_full_match(regex, cases):
     re = parse(regex)
     tnfa = ast_to_tnfa(re)
     tdfa = tnfa_to_tdfa(tnfa)
+
+    if DUMP_DOT:
+        tnfa.dump_dot("tnfa.dot")
+    if DUMP_DOT:
+        tdfa.dump_dot("tdfa.dot")
 
     if TEST_TNFA:
         test_one_regex_full_match_tnfa(regex, cases, tnfa)
