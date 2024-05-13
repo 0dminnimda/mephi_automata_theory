@@ -765,7 +765,7 @@ class TDFA(Generic[E]):
             self.final_registers,
             self.to_simulation_transition_function(),
             self.final_function,
-            self.tag_to_regs,
+            {reg: tag for tag, regs in self.tag_to_regs.items() for reg in regs},
             regs,
             self.named_groups_to_tags,
         )
@@ -972,9 +972,10 @@ class SimulatableTDFA(Generic[E]):
     transition_function: SimTranFunc
     final_function: dict[State, RegOps]
 
-    tag_to_regs: dict[Tag, list[Register]]
+    reg_to_tag: dict[Register, Tag]
     registers: list[RegisterStorage]
     named_groups_to_tags: NGroup2Tags
+    tag_to_last_updated_reg: dict[Tag, Register] = field(default_factory=dict, init=False)
 
     def restore_regular_expression_via_k_path(self) -> str | None:
         transition_map: dict[tuple[State, State], list[Matcher]] = defaultdict(list)
@@ -1096,8 +1097,12 @@ class SimulatableTDFA(Generic[E]):
         return result
 
     def to_partial_tdfa(self) -> TDFA:
+        tag_to_regs = dict()
+        for reg, tag in self.reg_to_tag.items():
+            tag_to_regs[tag] = tag_to_regs.get(tag, [])
+            tag_to_regs[tag].append(reg)
         return TDFA(
-            set(self.tag_to_regs.keys()),
+            set(tag_to_regs.keys()),
             list(
                 DetState(it, {}, [])
                 for it in set(self.transition_function.keys()) | set(self.final_states)
@@ -1112,13 +1117,14 @@ class SimulatableTDFA(Generic[E]):
                 for mat, dst, op in rest
             },
             self.final_function,
-            self.tag_to_regs,
+            tag_to_regs,
             self.named_groups_to_tags,
             set(),
         )
 
     def execute_regops(self, index: int, regops: RegOps) -> None:
         for regop in regops:
+            self.tag_to_last_updated_reg[self.reg_to_tag[regop.target]] = regop.target
             if isinstance(regop, SetOp):
                 self.registers[regop.target].set(regop.value.evaluate(index))
             elif isinstance(regop, CopyOp):
@@ -1135,26 +1141,32 @@ class SimulatableTDFA(Generic[E]):
         else:
             return self.registers[self.final_registers[tag]], 0
 
-    def get_register_storage_from_tag_all(
+    def get_register_storage_from_tag_last(
         self, tag: AnyTag
-    ) -> tuple[Iterable[RegisterStorage], int]:
+    ) -> tuple[RegisterStorage, int] | None:
         if isinstance(tag, FixedTag):
-            return (
-                self.registers[it] for it in self.tag_to_regs[tag.origin]
-            ), tag.offset
+            offset = tag.offset
+            tag = tag.origin
         else:
-            return (self.registers[it] for it in self.tag_to_regs[tag]), 0
+            offset = 0
+        reg = self.tag_to_last_updated_reg.get(tag)
+        if reg is None:
+            return None
+        return self.registers[reg], offset
 
-    def get_one_register_value_from_tag_all(self, tag: AnyTag) -> int | None:
-        start_stores, start_offset = self.get_register_storage_from_tag_all(tag)
+    def get_one_register_value_from_tag_last(self, tag: AnyTag) -> int | None:
+        res = self.get_register_storage_from_tag_last(tag)
+        if res is None:
+            return None
+
+        start_store, start_offset = res
         start_ind = None
-        for start_store in start_stores:
-            for start_ind in reversed(start_store.get_all()):
-                if start_ind is not None:
-                    break
-
+        for start_ind in reversed(start_store.get_all()):
             if start_ind is not None:
-                return start_ind + start_offset
+                break
+
+        if start_ind is not None:
+            return start_ind + start_offset
         return None
 
     def gather_matches(self, word: str) -> dict[str, list[str]]:
@@ -1177,8 +1189,8 @@ class SimulatableTDFA(Generic[E]):
                 return index + 1
             return None
         else:
-            start_ind = self.get_one_register_value_from_tag_all(matcher.start_tag)
-            end_ind = self.get_one_register_value_from_tag_all(matcher.end_tag)
+            start_ind = self.get_one_register_value_from_tag_last(matcher.start_tag)
+            end_ind = self.get_one_register_value_from_tag_last(matcher.end_tag)
 
             if start_ind is None or end_ind is None:
                 # BACKreference referes to the last matched group
