@@ -1181,6 +1181,9 @@ class SimulatableTDFA(Generic[E]):
             end_ind = self.get_one_register_value_from_tag_all(matcher.end_tag)
 
             if start_ind is None or end_ind is None:
+                # BACKreference referes to the last matched group
+                # currently we did not match not one of reffered groups
+                # it means we can't match here
                 return None
 
             group_match = word[start_ind:end_ind]
