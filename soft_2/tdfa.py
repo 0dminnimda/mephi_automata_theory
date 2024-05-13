@@ -767,7 +767,7 @@ class TDFA(Generic[E]):
         )
 
     def minimize_states(self):
-        # using Hopcroft's algorithm (pseudocode from Yingjie XU)
+        # using Hopcroft's algorithm in N * |T| * log (N) (pseudocode from Yingjie XU)
 
         all_trans = [(mat, tuple(regops)) for (_, mat), (_, regops) in self.transition_function.items()]
         states_set = {it.id for it in self.states}
