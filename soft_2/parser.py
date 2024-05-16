@@ -18,7 +18,7 @@ from helpers import iter_unique
 
 PIPE = "|"
 PERCENT = "%"
-ELLIPSIS = "…"
+ELLIPSIS = "..."
 PLUS = "+"
 QUESTION_MARK = "?"
 OPEN_ROUND_BRACKET = "("
@@ -31,7 +31,6 @@ OPEN_SQUARE_BRACKET = "["
 CLOSE_SQUARE_BRACKET = "]"
 META_CHARS = (
     PIPE
-    + ELLIPSIS
     + QUESTION_MARK
     + OPEN_ROUND_BRACKET
     + CLOSE_ROUND_BRACKET
@@ -172,7 +171,6 @@ class Parser:
 
     def parse_modyfiers(self):
         # r?
-        # r…
         # r...
         # r+
         # r{number}
@@ -189,7 +187,7 @@ class Parser:
         while 1:
             if self.match_and_consume(QUESTION_MARK):
                 expr = Repeat(expr, 0, 1)
-            elif self.match_and_consume(ELLIPSIS) or self.match_and_consume("..."):
+            elif self.match_and_consume(ELLIPSIS):
                 expr = Repeat(expr, 0, None)
             elif self.match_and_consume(PLUS):
                 expr = Repeat(expr, 1, None)
