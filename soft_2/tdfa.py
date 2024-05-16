@@ -344,7 +344,7 @@ class DeterminableTNFA(Generic[E]):
             for matcher_base, next_tnfa_state in self.double_mapped_sym.get(
                 tnfa_state, dict()
             ).items():
-                if self.matcher_can_pass(matcher_base, matcher):
+                if self.matcher_can_pass(matcher_base, matcher) and next_tnfa_state not in result:
                     result[next_tnfa_state] = Configuration(
                         deepcopy(conf.registers), deepcopy(conf.lookahead_tags), dict()
                     )
