@@ -305,7 +305,7 @@ class DeterminableTNFA(Generic[E]):
         return range_matchers + other_matchers
 
     def epsilon_closure(self, confs: DetConfs) -> DetConfs:
-        stack = deque(confs.items())
+        stack = deque(reversed(confs.items()))  # 0's item will become last, but first to pop()
         enqueued = set(confs.keys())
         result = DetConfs()
 
@@ -351,12 +351,11 @@ class DeterminableTNFA(Generic[E]):
         return result
 
     def precedence(self, confs: DetConfs) -> DetPrecs:
-        # We create the nodes in such a way, so the nodes
-        # which should be considered later in leftmost greed
-        # are numerically smaller
+        # We create the nodes in such a way, so the nodes 
+        # which are are numerically bigger, should be considered first
+        # for leftmost greedy, and last for lazy
         # Thus we should check the bigger numbers first
-        # FIXME but for some reason reversing makes it almost fully rightmost greedy
-        return sorted(confs.keys())
+        return sorted(confs.keys(), reverse=True)
 
     def add_state(self, regops: RegOps) -> DetState:
         state = DetState(self.get_next_state(), self.confs, self.precs)
