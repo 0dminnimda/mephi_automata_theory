@@ -320,6 +320,27 @@ data_full_match = {
         ("?a?", False, {}),
         ("sdfsd", False, {}),
     ],
+    "(<g1>a...)[ab](<g2>b...)": [
+        ("", False, {}),
+        ("b", True, {"g1": [""], "g2": [""]}),
+        ("a", True, {"g1": [""], "g2": [""]}),
+        ("?", False, {}),
+        ("aa", True, {"g1": ["a"], "g2": [""]}),
+        ("bb", True, {"g1": [""], "g2": ["b"]}),
+        ("aab", True, {"g1": ["aa"], "g2": [""]}),
+        ("abb", True, {"g1": ["a"], "g2": ["b"]}),
+        ("aaab", True, {"g1": ["aaa"], "g2": [""]}),
+        ("aabb", True, {"g1": ["aa"], "g2": ["b"]}),
+        ("abbb", True, {"g1": ["a"], "g2": ["bb"]}),
+        ("aaa", True, {"g1": ["aa"], "g2": [""]}),
+        ("bbb", True, {"g1": [""], "g2": ["bb"]}),
+        ("?a", False, {}),
+        ("a?", False, {}),
+        ("??", False, {}),
+        ("??a", False, {}),
+        ("?a?", False, {}),
+        ("sdfsd", False, {}),
+    ],
     "a...(a|b)b...": [
         ("", False, {}),
         ("b", True, {}),
@@ -409,10 +430,7 @@ data_full_match = {
         ("", False, {}),
         ("sdfsd", False, {}),
     ]
-    + [
-        (c, True, {"g1": [None], "g2": [c]})
-        for c in "abcd"  # XXX: why is it lazy here?
-    ]
+    + [(c, True, {"g1": [None], "g2": [c]}) for c in "abcd"]
     + [(c, True, {"g1": [None], "g2": [c]}) for c in "efgho"]
     + [(c + "?", False, {}) for c in "abcdefgho"]
     + [(c + "?", False, {}) for c in "abcd"]
@@ -799,7 +817,11 @@ data_full_match = {
         ("abc", True, {"ou": ["abc"], "in": ["c"]}),
         ("abccccabcabcc", True, {"ou": ["abc"], "in": ["c"]}),
         ("abcabdabf", True, {"ou": ["abc", "abd", "abf"], "in": ["c", "d", "f"]}),
-        ("abcabdabfffffabffabf", True, {"ou": ["abc", "abd", "abf"], "in": ["c", "d", "f"]}),
+        (
+            "abcabdabfffffabffabf",
+            True,
+            {"ou": ["abc", "abd", "abf"], "in": ["c", "d", "f"]},
+        ),
         ("abcabdabffffccfdabcfabd", False, {}),
         ("sdfsd", False, {}),
     ],
