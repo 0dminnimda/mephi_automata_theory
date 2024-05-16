@@ -118,6 +118,7 @@ class Repeat(RE):
     expr: RE
     min: int
     max: int | None
+    lazy: bool = False  # greedy or lazy
 
 
 @dataclass(frozen=True)

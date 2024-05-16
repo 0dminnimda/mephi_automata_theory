@@ -179,6 +179,8 @@ class Parser:
         # r{min,max}
         # r{,}
 
+        # and all those with the question mark at the end
+
         expr = self.parse_atom()
 
         if expr is None:
@@ -186,17 +188,21 @@ class Parser:
 
         while 1:
             if self.match_and_consume(QUESTION_MARK):
-                expr = Repeat(expr, 0, 1)
+                lazy = self.match_and_consume(QUESTION_MARK)
+                expr = Repeat(expr, 0, 1, lazy)
             elif self.match_and_consume(ELLIPSIS):
-                expr = Repeat(expr, 0, None)
+                lazy = self.match_and_consume(QUESTION_MARK)
+                expr = Repeat(expr, 0, None, lazy)
             elif self.match_and_consume(PLUS):
-                expr = Repeat(expr, 1, None)
+                lazy = self.match_and_consume(QUESTION_MARK)
+                expr = Repeat(expr, 1, None, lazy)
             elif self.match_and_consume(OPEN_CURLY_BRACKET):
                 min, max = self.parse_inner_repeat()
                 self.match_and_consume_spaces()
                 if not self.match_and_consume(CLOSE_CURLY_BRACKET):
                     self.report(f"Expected '{CLOSE_CURLY_BRACKET}'")
-                expr = Repeat(expr, min, max)
+                lazy = self.match_and_consume(QUESTION_MARK)
+                expr = Repeat(expr, min, max, lazy)
             else:
                 break
 

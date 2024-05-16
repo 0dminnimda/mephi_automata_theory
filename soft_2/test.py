@@ -233,7 +233,7 @@ EMAIL_PATTERN = make_email_pattern()
 
 
 data_full_match = {
-    "b|((<gg>a)|%?%){2}?<gg>...": [
+    "b|(((<gg>a)|%?%){2})?<gg>...": [
         ("", True, {"gg": [None]}),
         ("b", True, {"gg": [None]}),
         ("a", False, {}),
@@ -254,7 +254,7 @@ data_full_match = {
         ("??aa", False, {}),
         ("sdfsd", False, {}),
     ],
-    "b|(a|%?%){2}?": [
+    "b|((a|%?%){2})?": [
         ("", True, {}),
         ("b", True, {}),
         ("a", False, {}),
@@ -307,7 +307,7 @@ data_full_match = {
         ("aab", False, {}),
         ("bbb", False, {}),
     ],
-    "b|((<gg>a)|%?%){2}?": [
+    "b|(((<gg>a)|%?%){2})?": [
         ("", True, {"gg": [None]}),
         ("b", True, {"gg": [None]}),
         ("a", False, {}),
