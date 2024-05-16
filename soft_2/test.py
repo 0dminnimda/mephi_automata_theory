@@ -918,12 +918,12 @@ data_find_all = {
 def test_dfa0():
     # (<g1>a)*(<g2>a|<tag4>b)b*
     re = ast.Concat((
-        ast.Repeat(ast.NamedGroup("g1", ast.make_symbol("a")), 0, None),
+        ast.Repeat(ast.NamedGroup("g1", ast.make_symbol("a")), 0, None, False),
         ast.NamedGroup("g2", ast.Or((
             ast.make_symbol("a"),
             ast.Concat((ast.Tag(100), ast.make_symbol("b"))),
         ))),
-        ast.Repeat(ast.make_symbol("b"), 0, None),
+        ast.Repeat(ast.make_symbol("b"), 0, None, False),
     ))
     tnfa = ast_to_tnfa(re)
     tdfa = tnfa_to_tdfa(tnfa)
@@ -934,10 +934,10 @@ def test_dfa1():
     # ((<g1>a)*|(<g2>b)*)b?
     re = ast.Concat((
         ast.Or((
-            ast.Repeat(ast.NamedGroup("g1", ast.make_symbol("a")), 0, None),
-            ast.Repeat(ast.NamedGroup("g2", ast.make_symbol("b")), 0, None),
+            ast.Repeat(ast.NamedGroup("g1", ast.make_symbol("a")), 0, None, False),
+            ast.Repeat(ast.NamedGroup("g2", ast.make_symbol("b")), 0, None, False),
         )),
-        ast.Repeat(ast.make_symbol("b"), 0, 1),
+        ast.Repeat(ast.make_symbol("b"), 0, 1, False),
     ))
     tnfa = ast_to_tnfa(re)
     tdfa = tnfa_to_tdfa(tnfa)
@@ -950,9 +950,9 @@ def test_dfa2():
     # a*<tag>b*|ab
     re = ast.Or((
         ast.Concat((
-            ast.Repeat(ast.make_symbol("a"), 0, None),
+            ast.Repeat(ast.make_symbol("a"), 0, None, False),
             ast.Tag(100),
-            ast.Repeat(ast.make_symbol("b"), 0, None),
+            ast.Repeat(ast.make_symbol("b"), 0, None, False),
         )),
         ast.Concat((
             ast.make_symbol("a"),

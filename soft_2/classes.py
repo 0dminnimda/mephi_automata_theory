@@ -118,7 +118,7 @@ class Repeat(RE):
     expr: RE
     min: int
     max: int | None
-    lazy: bool = False  # greedy or lazy
+    lazy: bool  # greedy or lazy
 
 
 @dataclass(frozen=True)
@@ -167,7 +167,7 @@ class AstReverse(Visitor):
         return Or(tuple(self.visit(it) for it in node.expressions))
 
     def visit_Repeat(self, node: Repeat):
-        return Repeat(self.visit(node.expr), node.min, node.max)
+        return Repeat(self.visit(node.expr), node.min, node.max, node.lazy)
 
     def visit_NamedGroup(self, node: NamedGroup):
         return NamedGroup(node.name, self.visit(node.expr))

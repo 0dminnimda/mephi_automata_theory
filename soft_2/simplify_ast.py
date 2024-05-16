@@ -118,7 +118,7 @@ class SimplifyAst(ast.Visitor):
         return ast.Or(tuple(result))
 
     def visit_Repeat(self, node: ast.Repeat):
-        return ast.Repeat(self.visit(node.expr), node.min, node.max)
+        return ast.Repeat(self.visit(node.expr), node.min, node.max, node.lazy)
 
     def get_next_tag(self):
         self.next_tag += 1
