@@ -189,6 +189,39 @@ class TNFA(Generic[E]):
         path = self.dump_dot(path)
         os.system(f"dot -Tpng -Gdpi=300 {path} -o {path}.png")  # coz why not
 
+    def generate_precedence_based_on_priority(
+        self, ordered_eps: OrdMapEpsTrans, double_mapped_sym: DblMapSymTrans
+    ) -> list[int]:
+        # The continuous paths have the same priority,
+        # as they precede eachother and can't compete for order.
+        # But it we hit and end or already visited node,
+        # this signifies that the continuous path have ended
+        # The next paths will allow for ambiguity as they allow several paths to coniside
+        # So we need to separate them by giving them smaller precedences.
+        # Paths with greater priority are giver smaller precedences,
+        # they should be considered first.
+
+        visited = [False] * len(self.states)
+        result = [0] * len(self.states)
+        i = 0
+
+        queue = deque([self.initial_state])
+        while queue:
+            state = queue.pop()
+
+            if visited[state]:
+                i += 1
+                continue
+            visited[state] = True
+
+            result[state] = i
+            for _, next_state in reversed(ordered_eps.get(state, [])):
+                queue.append(next_state)
+            for next_state in double_mapped_sym.get(state, dict()).values():
+                queue.append(next_state)
+
+        return result
+
     def get_double_mapped_symbol_transitions(self) -> DblMapSymTrans:
         mapped_sym = {}
         for q, s, p in self.symbol_transitions:

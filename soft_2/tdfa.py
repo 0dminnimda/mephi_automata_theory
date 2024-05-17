@@ -138,6 +138,7 @@ class DeterminableTNFA(Generic[E]):
     tnfa: TNFA[E] = field(init=False)
     double_mapped_sym: DblMapSymTrans = field(default_factory=DblMapSymTrans)
     ordered_eps: OrdMapEpsTrans = field(default_factory=OrdMapEpsTrans)
+    priority_precedence: list[int] = field(default_factory=list)
     confs: DetConfs = field(default_factory=DetConfs)
     precs: DetPrecs = field(default_factory=DetPrecs)
     registers: set[Register] = field(default_factory=set)
@@ -168,6 +169,7 @@ class DeterminableTNFA(Generic[E]):
 
         self.ordered_eps = tnfa.get_ordered_mapped_epsilon_transitions()
         self.double_mapped_sym = tnfa.get_double_mapped_symbol_transitions()
+        self.priority_precedence = tnfa.generate_precedence_based_on_priority(self.ordered_eps, self.double_mapped_sym)
 
         r0 = {tag: self.get_next_reg() for tag in tnfa.tags}
         for tag, reg in r0.items():
@@ -350,12 +352,11 @@ class DeterminableTNFA(Generic[E]):
                     )
         return result
 
+    def _precedence_key(self, x: tnfa.State) -> int:
+        return self.priority_precedence[x]
+
     def precedence(self, confs: DetConfs) -> DetPrecs:
-        # We create the nodes in such a way, so the nodes 
-        # which are are numerically bigger, should be considered first
-        # for leftmost greedy, and last for lazy
-        # Thus we should check the bigger numbers first
-        return sorted(confs.keys(), reverse=True)
+        return sorted(confs.keys(), key=self._precedence_key)
 
     def add_state(self, regops: RegOps) -> DetState:
         state = DetState(self.get_next_state(), self.confs, self.precs)
