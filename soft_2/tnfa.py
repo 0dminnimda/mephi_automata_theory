@@ -58,7 +58,7 @@ def dump_pair(tag: AnyTag) -> str:
 
 DOT_ESCAPE_TABLE = {
     '"': '\\"',
-    '\\': '\\\\',
+    "\\": "\\\\",
     "]": "\\]",
     "[": "\\[",
 }
@@ -474,7 +474,9 @@ class Ast2Tnfa(ast.Visitor):
     def visit_Repeat(self, node: ast.Repeat, state: State):
         return self.repeat_expr(node.expr, node.min, node.max, node.lazy, state)
 
-    def repeat_expr(self, node: ast.RE, min: int, max: int | None, lazy: bool, state: State):
+    def repeat_expr(
+        self, node: ast.RE, min: int, max: int | None, lazy: bool, state: State
+    ):
         assert min >= 0, "'repeat' min must be non-negative"
         assert (
             max is None or max >= min
