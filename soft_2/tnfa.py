@@ -472,9 +472,9 @@ class Ast2Tnfa(ast.Visitor):
         return prev
 
     def visit_Repeat(self, node: ast.Repeat, state: State):
-        return self.repeat_expr(node.expr, node.min, node.max, state)
+        return self.repeat_expr(node.expr, node.min, node.max, node.lazy, state)
 
-    def repeat_expr(self, node: ast.RE, min: int, max: int | None, state: State):
+    def repeat_expr(self, node: ast.RE, min: int, max: int | None, lazy: bool, state: State):
         assert min >= 0, "'repeat' min must be non-negative"
         assert (
             max is None or max >= min
@@ -482,7 +482,7 @@ class Ast2Tnfa(ast.Visitor):
 
         if 1 < min:
             tnfa2 = self.repeat_expr(
-                node, min - 1, max if max is None else max - 1, state
+                node, min - 1, max if max is None else max - 1, lazy, state
             )
             tnfa1 = self.visit(node, tnfa2.initial_state)
             return TNFA(
@@ -495,22 +495,25 @@ class Ast2Tnfa(ast.Visitor):
             )
 
         if min == 0:
-            tnfa = self.repeat_expr(node, min + 1, max, state)
-            return self.or_with_two(ast.Epsilon(), tnfa, prioritize_lhs=False)
+            tnfa = self.repeat_expr(node, min + 1, max, lazy, state)
+            return self.or_with_two(ast.Epsilon(), tnfa, prioritize_lhs=lazy)
 
         if min == 1 and max == 1:
             return self.visit(node, state)
 
+        priority_keep = 2 if lazy else 1
+        priority_quit = 1 if lazy else 2
+
         if min == 1 and max is not None:
             end1 = self.get_next_state()
 
-            tnfa2 = self.repeat_expr(node, 1, max - 1, state)
+            tnfa2 = self.repeat_expr(node, 1, max - 1, lazy, state)
             tnfa1 = self.visit(node, end1)
 
             epsilon_transitions = tnfa1.epsilon_transitions | tnfa2.epsilon_transitions
             epsilon_transitions |= {
-                EpsilonTransition(end1, 1, None, state),
-                EpsilonTransition(end1, 2, None, tnfa2.initial_state),
+                EpsilonTransition(end1, priority_quit, None, state),
+                EpsilonTransition(end1, priority_keep, None, tnfa2.initial_state),
             }
             return TNFA(
                 tnfa1.tags | tnfa2.tags,
@@ -528,8 +531,8 @@ class Ast2Tnfa(ast.Visitor):
             tnfa: TNFA = self.visit(node, end)
             states = tnfa.states | {state}
             epsilon_transitions = tnfa.epsilon_transitions | {
-                EpsilonTransition(end, 1, None, tnfa.initial_state),
-                EpsilonTransition(end, 2, None, state),
+                EpsilonTransition(end, priority_quit, None, state),
+                EpsilonTransition(end, priority_keep, None, tnfa.initial_state),
             }
             return TNFA(
                 tnfa.tags,
