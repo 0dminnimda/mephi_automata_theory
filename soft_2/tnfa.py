@@ -192,13 +192,15 @@ class TNFA(Generic[E]):
     def generate_precedence_based_on_priority(
         self, ordered_eps: OrdMapEpsTrans, double_mapped_sym: DblMapSymTrans
     ) -> list[int]:
-        # The continuous paths have the same priority,
-        # as they precede eachother and can't compete for order.
-        # But it we hit and end or already visited node,
-        # this signifies that the continuous path have ended
-        # The next paths will allow for ambiguity as they allow several paths to coniside
-        # So we need to separate them by giving them smaller precedences.
-        # Paths with greater priority are giver smaller precedences,
+        # This uses DFS for generating paths.
+        # The continuous paths have the same priority, their relative order does not matter,
+        # since they precede eachother, thus it's not possible for them to compete.
+        # But if we hit an end or an already visited node,
+        # this signifies that the continuous path have ended.
+        # The next paths will allow for ambiguity,
+        # as they allow several ways to reach this state.
+        # So we need to separate them by giving them different precedence values.
+        # Paths with greater priority are giver smaller precedence values,
         # they should be considered first.
 
         visited = [False] * len(self.states)
