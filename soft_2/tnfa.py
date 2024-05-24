@@ -284,15 +284,15 @@ class SimulatableTNFA(Generic[E]):
     confs: SimConfs
 
     def epsilon_closure(self, confs) -> SimConfs:
-        stack = deque(confs.items())
-        enqueued = set(confs.keys())
+        stack = deque(reversed(confs.items()))
+        enqueued = set()
         result = SimConfs()
 
         while stack:
             conf_state, conf = stack.pop()
 
             tag_state_list = self.ordered_eps.get(conf_state, [])
-            for tag, next_state in tag_state_list:
+            for tag, next_state in reversed(tag_state_list):
                 if next_state not in enqueued:
                     next_conf = deepcopy(conf)
                     next_conf.set_tag(tag, conf.index)
@@ -304,21 +304,56 @@ class SimulatableTNFA(Generic[E]):
 
         return result
 
-    def run_matcher(self, matcher: Matcher, word: str, index: int) -> int | None:
+    def get_register_storage(
+        self, regs: SimTags, tag: AnyTag
+    ) -> tuple[Sequence[int | None], int]:
+        if isinstance(tag, FixedTag):
+            return regs[tag.origin], tag.offset
+        else:
+            return regs[tag], 0
+
+    def get_one_register_value_from_tag_last(self, regs: SimTags, tag: AnyTag) -> int | None:
+        res = self.get_register_storage(regs, tag)
+        if res is None:
+            return None
+
+        start_store, start_offset = res
+        start_ind = None
+        for start_ind in reversed(start_store):
+            if start_ind is not None:
+                break
+
+        if start_ind is not None:
+            return start_ind + start_offset
+        return None
+
+    def run_matcher(self, regs: SimTags, matcher: Matcher, word: str, index: int) -> int | None:
         if isinstance(matcher, ast.SymbolRanges):
             if matcher.matches(word[index]):
                 return index + 1
             return None
         else:
-            return None
-            # raise NotImplementedError("groups")
+            start_ind = self.get_one_register_value_from_tag_last(regs, matcher.start_tag)
+            end_ind = self.get_one_register_value_from_tag_last(regs, matcher.end_tag)
+
+            if start_ind is None or end_ind is None:
+                # BACKreference referes to the last matched group
+                # currently we did not match not one of reffered groups
+                # it means we can't match here
+                return None
+
+            group_match = word[start_ind:end_ind]
+            if word.startswith(group_match, index):
+                return index + len(group_match)
+            else:
+                return None
 
     def step_on_symbol(self, word: str) -> SimConfs:
         result = SimConfs()
         for conf_state, conf in self.confs.items():
             assert conf.index < len(word)
             for matcher, state in self.mapped_sym.get(conf_state, dict()).items():
-                index = self.run_matcher(matcher, word, conf.index)
+                index = self.run_matcher(conf.registers, matcher, word, conf.index)
                 if index is not None:
                     result[state] = SimConf(conf.registers, index)
         return result
@@ -332,14 +367,6 @@ class SimulatableTNFA(Generic[E]):
             else:
                 finished[conf_state] = conf
         return finished, not_finished
-
-    def get_register_storage(
-        self, regs: SimTags, tag: AnyTag
-    ) -> tuple[Sequence[int | None], int]:
-        if isinstance(tag, FixedTag):
-            return regs[tag.origin], tag.offset
-        else:
-            return regs[tag], 0
 
     def gather_matches(self, conf: SimConf, word: str) -> dict[str, list[str]]:
         registers = conf.registers

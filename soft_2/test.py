@@ -1165,7 +1165,7 @@ def test_dfa3():
 # fmt: on
 
 
-TEST_TNFA = False
+TEST_TNFA = True
 DUMP_DOT = True
 
 
