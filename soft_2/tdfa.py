@@ -308,14 +308,18 @@ class DeterminableTNFA(Generic[E]):
 
     def epsilon_closure(self, confs: DetConfs) -> DetConfs:
         stack = deque(reversed(confs.items()))  # 0's item will become last, but first to pop()
-        enqueued = set(confs.keys())
+        enqueued = set()  # Empty set - let the more prioritized states to add the transitions first
+        # if we fill this with states from confs we let the states with shortest path to the other state
+        # win over the tags from the ones with longer path but higher priority.
+        # The prioritized states should be able to override tags from the shorter paths.
         result = DetConfs()
 
         while stack:
             state, conf = stack.pop()
 
             tag_state_list = self.ordered_eps.get(state, [])
-            for tag, next_state in tag_state_list:
+            # reversed, becase poping order is reversed to insertion order
+            for tag, next_state in reversed(tag_state_list):
                 if next_state not in enqueued:
                     next_conf = deepcopy(conf)
                     next_conf.set_lookahead_tag(tag)
