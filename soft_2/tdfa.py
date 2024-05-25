@@ -651,7 +651,7 @@ class TDFA(Generic[E]):
     named_groups_to_tags: NGroup2Tags
     multitags: set[Tag]
 
-    def dumps_dot(self) -> str:
+    def dumps_dot(self, vertical_regops: bool = True) -> str:
         result = []
         result.append("digraph G {\n")
         result.append("rankdir=LR\n")
@@ -664,16 +664,16 @@ class TDFA(Generic[E]):
             f'n [shape=point xlabel="Start"] n -> n{self.initial_state} [style=dotted]\n'
         )
 
+        regop_sep = "\\n" if vertical_regops else " "
+
         for (q, s), (p, o) in self.transition_function.items():
-            ops = " ".join(f"{op}" for op in o)
-            ops = ops.translate(tnfa.DOT_ESCAPE_TRANS)
+            ops = regop_sep.join(f"{op}".translate(tnfa.DOT_ESCAPE_TRANS) for op in o)
             if ops:
                 ops = "\\n" + ops
             result.append(f'n{q} -> n{p} [label="{dump_matcher(s)}{ops}"];\n')
 
         for q, o in self.final_function.items():
-            ops = " ".join(str(op) for op in o)
-            ops = ops.translate(tnfa.DOT_ESCAPE_TRANS)
+            ops = regop_sep.join(f"{op}".translate(tnfa.DOT_ESCAPE_TRANS) for op in o)
             result.append(
                 f'subgraph {{ rank=same n{q} dr{q} [shape=rect style=dotted fillcolor=transparent label="{ops}"] n{q}:s -> dr{q}:n [style=dotted minlen=0]}}\n'
             )
