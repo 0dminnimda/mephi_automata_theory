@@ -1102,7 +1102,9 @@ def test_dfa1():
         )),
         ast.Repeat(ast.make_symbol("b"), 0, 1, False),
     ))
+    # re = parse("(ba|b?|in|g...)kd((op?)l(ab(t...k?)cde...%}%?)p)...k?(ha...lalp?|ha...ram?)?")
     tnfa = ast_to_tnfa(re)
+    # tnfa.dump_dot("tnfa.dot")
     tdfa = tnfa_to_tdfa(tnfa)
     tdfa.dump_dot("tdfa.dot")
     # print("tnfa", tnfa.as_simulatable().simulate("aaab"))
